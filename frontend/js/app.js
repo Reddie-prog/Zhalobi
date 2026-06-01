@@ -1215,6 +1215,42 @@ function initRouteMap() {
   }
 }
 
+async function setRouteStart() {
+  const val = document.getElementById('routeStartInput').value.trim();
+  if (!val || !_startMarker) return;
+
+  // Check if input looks like "lat, lng"
+  const coordMatch = val.match(/^(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)$/);
+  if (coordMatch) {
+    const lat = parseFloat(coordMatch[1]);
+    const lng = parseFloat(coordMatch[2]);
+    _startMarker.setLatLng([lat, lng]);
+    _routeMap.setView([lat, lng], 13, { animate: true });
+    return;
+  }
+
+  // Geocode via Nominatim
+  const btn = document.querySelector('[onclick="setRouteStart()"]');
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳';
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=1`,
+      { headers: { 'User-Agent': 'Zhalobi/1.0' } }
+    );
+    const data = await res.json();
+    if (!data.length) { showToast('warning', 'Адрес не найден'); return; }
+    const lat = parseFloat(data[0].lat);
+    const lng = parseFloat(data[0].lon);
+    _startMarker.setLatLng([lat, lng]);
+    _routeMap.setView([lat, lng], 14, { animate: true });
+  } catch(e) {
+    showToast('error', 'Ошибка геокодирования');
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
 async function buildRoute() {
   if (!_startMarker) { showToast('warning', 'Карта ещё загружается'); return; }
   const btn = document.getElementById('buildRouteBtn');
