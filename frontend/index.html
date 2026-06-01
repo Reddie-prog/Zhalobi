@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ЖКХ.Онлайн — Платформа жалоб и обращений</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="/css/style.css?v=5">
+</head>
+<body>
+
+<!-- ════════ HEADER ════════ -->
+<header id="header">
+  <div class="header-inner">
+    <div class="logo" onclick="if(document.getElementById('cabinet').classList.contains('active')){closeCabinet();}else{window.scrollTo({top:0,behavior:'smooth'});}">
+      <div class="logo-icon">🏗</div>
+      <div class="logo-text">ЖКХ<span>.Онлайн</span></div>
+    </div>
+    <nav>
+      <a href="#how"        data-section="how">Как это работает</a>
+      <a href="#submit"     data-section="submit">Подать жалобу</a>
+      <a href="#map-section" data-section="map-section">Карта</a>
+      <a href="#tracker"    data-section="tracker">Отследить</a>
+      <a href="#statistics" data-section="statistics">Статистика</a>
+      <a href="#faq"        data-section="faq">FAQ</a>
+    </nav>
+    <div class="header-actions">
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('tracker').scrollIntoView({behavior:'smooth'})">🔍 Найти обращение</button>
+      <button class="notif-btn" id="notifBtn" style="display:none" onclick="openCabinet('notifications')" title="Уведомления">
+        🔔<span class="notif-dot" id="notifDot" style="display:none"></span>
+      </button>
+      <button class="btn btn-ghost btn-sm" id="loginBtn" onclick="openAuthModal('login')">Войти</button>
+      <button class="btn btn-primary btn-sm" id="registerBtn" onclick="openAuthModal('register')">Регистрация</button>
+      <div class="user-menu-wrap" id="userMenuWrap" style="display:none">
+        <div class="user-avatar-btn" onclick="toggleUserDropdown()">
+          <div class="avatar-circle" id="headerAvatar"></div>
+          <span class="user-name" id="headerName"></span>
+          <span class="chevron">⌄</span>
+        </div>
+        <div class="user-dropdown" id="userDropdown">
+          <div class="dropdown-user-info">
+            <div class="dropdown-user-name" id="dropdownName"></div>
+            <div class="dropdown-user-email" id="dropdownEmail"></div>
+          </div>
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-item" onclick="openCabinet('profile')"><span class="dropdown-icon">👤</span> Мой профиль</div>
+          <div class="dropdown-item" onclick="openCabinet('complaints')"><span class="dropdown-icon">📋</span> Мои жалобы</div>
+          <div class="dropdown-item" onclick="openCabinet('notifications')">
+            <span class="dropdown-icon">🔔</span> Уведомления
+            <span class="notif-badge" id="dropdownNotifBadge" style="display:none">3</span>
+          </div>
+          <div class="dropdown-item" onclick="openCabinet('settings')"><span class="dropdown-icon">⚙️</span> Настройки</div>
+          <div class="dropdown-item" id="adminDropdownItem" style="display:none;background:linear-gradient(135deg,rgba(124,58,237,.08),rgba(37,99,235,.08));border-radius:10px" onclick="openCabinet('admin')">
+            <span class="dropdown-icon">🛡️</span> Администрирование
+          </div>
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-item danger" onclick="doLogout()"><span class="dropdown-icon">🚪</span> Выйти</div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="scrollToForm()">+ Подать жалобу</button>
+    </div>
+  </div>
+</header>
+
+<!-- ════════ MAIN PAGE ════════ -->
+<div id="mainPage">
+
+<!-- HERO -->
+<section id="hero">
+  <div class="hero-bg">
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div class="hero-orb hero-orb-3"></div>
+    <div class="hero-grid"></div>
+  </div>
+  <div class="hero-inner">
+    <div>
+      <div class="hero-badge"><span class="badge-dot"></span> Официальная платформа обращений</div>
+      <h1 class="hero-title">Ваши жалобы —<br><span class="accent">реальные решения</span></h1>
+      <p class="hero-subtitle">Подавайте обращения по ЖКХ онлайн. Отслеживайте статус в реальном времени. Управляющие компании обязаны ответить в течение 10 рабочих дней.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary btn-lg" onclick="scrollToForm()">📝 Подать жалобу сейчас</button>
+        <button class="btn-outline-white" onclick="document.getElementById('tracker').scrollIntoView({behavior:'smooth'})">🔍 Проверить статус</button>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="hero-stat-num" id="hero-cnt-1">—</div><div class="hero-stat-label">Жалоб подано</div></div>
+        <div class="hero-stat"><div class="hero-stat-num" id="hero-cnt-2">—</div><div class="hero-stat-label">Решено вовремя</div></div>
+        <div class="hero-stat"><div class="hero-stat-num">6 дней</div><div class="hero-stat-label">Среднее время ответа</div></div>
+      </div>
+    </div>
+    <div class="hero-card">
+      <div class="hero-card-title">⚡ Быстрая подача по категории</div>
+      <div class="quick-categories" id="quick-categories-grid">
+        <div class="quick-cat" onclick="quickCat(1)"><div class="quick-cat-icon">💧</div><div class="quick-cat-name">Водоснаб.</div></div>
+        <div class="quick-cat" onclick="quickCat(2)"><div class="quick-cat-icon">🔥</div><div class="quick-cat-name">Отопление</div></div>
+        <div class="quick-cat" onclick="quickCat(3)"><div class="quick-cat-icon">⚡</div><div class="quick-cat-name">Электричество</div></div>
+        <div class="quick-cat" onclick="quickCat(4)"><div class="quick-cat-icon">🛗</div><div class="quick-cat-name">Лифт</div></div>
+        <div class="quick-cat" onclick="quickCat(5)"><div class="quick-cat-icon">🧹</div><div class="quick-cat-name">Уборка</div></div>
+        <div class="quick-cat" onclick="quickCat(6)"><div class="quick-cat-icon">🛣️</div><div class="quick-cat-name">Дороги</div></div>
+        <div class="quick-cat" onclick="quickCat(7)"><div class="quick-cat-icon">💡</div><div class="quick-cat-name">Освещение</div></div>
+        <div class="quick-cat" onclick="quickCat(8)"><div class="quick-cat-icon">🏠</div><div class="quick-cat-name">Другое</div></div>
+      </div>
+      <div class="hero-live">
+        <div class="live-header"><div class="live-dot"></div><div class="live-title">Последние обращения</div></div>
+        <div id="live-feed"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- METRICS BAR -->
+<div id="metrics">
+  <div class="metrics-grid">
+    <div class="metric-item"><div class="metric-num"><span id="m1">—</span></div><div class="metric-label">Всего обращений</div><div class="metric-change">↑ +12% за месяц</div></div>
+    <div class="metric-item"><div class="metric-num"><span id="m2">—</span>%</div><div class="metric-label">Решено вовремя</div><div class="metric-change">↑ +4% за месяц</div></div>
+    <div class="metric-item"><div class="metric-num"><span id="m3">—</span></div><div class="metric-label">Активных пользователей</div><div class="metric-change">↑ +847 сегодня</div></div>
+    <div class="metric-item"><div class="metric-num"><span id="m4">—</span> дн</div><div class="metric-label">Среднее время решения</div><div class="metric-change">↓ −2 дня за месяц</div></div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Процесс</div>
+      <h2 class="section-title">Как это работает</h2>
+      <p class="section-subtitle">Четыре простых шага от проблемы до её решения</p>
+    </div>
+    <div class="steps-grid">
+      <div class="steps-line"></div>
+      <div class="step-card"><div class="step-num">1</div><div class="step-title">Опишите проблему</div><div class="step-text">Выберите категорию, укажите адрес, добавьте фото и подробное описание</div></div>
+      <div class="step-card"><div class="step-num">2</div><div class="step-title">Регистрация обращения</div><div class="step-text">Ваша жалоба автоматически направляется в ответственную организацию</div></div>
+      <div class="step-card"><div class="step-num">3</div><div class="step-title">Получайте уведомления</div><div class="step-text">Следите за статусом по трек-номеру, получайте уведомления о каждом изменении</div></div>
+      <div class="step-card"><div class="step-num">4</div><div class="step-title">Оцените решение</div><div class="step-text">После закрытия жалобы поставьте оценку качеству работы исполнителя</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPLAINT FORM -->
+<section id="submit">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Обращение</div>
+      <h2 class="section-title">Подать жалобу</h2>
+      <p class="section-subtitle">Заполните форму — это займёт не более 3 минут</p>
+    </div>
+    <div class="form-container">
+      <div class="form-progress">
+        <div class="progress-steps">
+          <div class="progress-step">
+            <div class="step-circle active" id="pc1">1</div>
+            <div class="step-label active" id="pl1">Категория</div>
+          </div>
+          <div class="step-connector" id="conn1"></div>
+          <div class="progress-step">
+            <div class="step-circle" id="pc2">2</div>
+            <div class="step-label" id="pl2">Описание</div>
+          </div>
+          <div class="step-connector" id="conn2"></div>
+          <div class="progress-step">
+            <div class="step-circle" id="pc3">3</div>
+            <div class="step-label" id="pl3">Контакты</div>
+          </div>
+          <div class="step-connector" id="conn3"></div>
+          <div class="progress-step">
+            <div class="step-circle" id="pc4">4</div>
+            <div class="step-label" id="pl4">Готово</div>
+          </div>
+        </div>
+      </div>
+      <div class="form-body">
+
+        <!-- STEP 1 -->
+        <div class="form-step active" id="step1">
+          <div class="form-step-title">Выберите категорию проблемы</div>
+          <div class="form-step-subtitle">Укажите тип неисправности для направления в нужное ведомство</div>
+          <div class="category-grid" id="categoryGrid">
+            <div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--muted)">Загрузка категорий...</div>
+          </div>
+          <div class="form-footer">
+            <div style="font-size:13px;color:var(--muted)">* Обязательный выбор</div>
+            <button class="btn btn-primary" onclick="goStep(2)" id="step1Next" disabled>Далее →</button>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="form-step" id="step2">
+          <div class="form-step-title">Опишите проблему</div>
+          <div class="form-step-subtitle">Чем подробнее описание — тем быстрее будет решена проблема</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Город <span>*</span></label>
+              <input class="form-control" id="f-city" placeholder="Например: Москва">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Улица и дом <span>*</span></label>
+              <input class="form-control" id="f-street" placeholder="ул. Ленина, 45, кв. 12">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Подробное описание <span>*</span></label>
+            <textarea class="form-control" id="f-desc" placeholder="Опишите проблему детально: что именно сломано, когда началось, какие последствия это вызывает..."></textarea>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px"><span id="charCount">0</span>/1000 символов</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Срочность</label>
+            <div class="urgency-grid">
+              <div class="urgency-item sel-low" onclick="selectUrgency(this,'low')">
+                <div class="urgency-dot" style="background:var(--secondary)"></div>
+                <div><div class="urgency-label">Обычная</div><div style="font-size:12px;color:var(--muted)">До 10 рабочих дней</div></div>
+              </div>
+              <div class="urgency-item" onclick="selectUrgency(this,'med')">
+                <div class="urgency-dot" style="background:var(--warning)"></div>
+                <div><div class="urgency-label">Срочная</div><div style="font-size:12px;color:var(--muted)">До 3 рабочих дней</div></div>
+              </div>
+              <div class="urgency-item" onclick="selectUrgency(this,'high')">
+                <div class="urgency-dot" style="background:var(--danger)"></div>
+                <div><div class="urgency-label">Аварийная</div><div style="font-size:12px;color:var(--muted)">Немедленно (24ч)</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Прикрепите фото (необязательно)</label>
+            <div class="photo-upload">
+              <input type="file" accept="image/*" multiple onchange="previewPhotos(this)">
+              <div class="photo-upload-icon">📸</div>
+              <div class="photo-upload-text">Нажмите или перетащите фото сюда</div>
+              <div class="photo-upload-hint">PNG, JPG до 10 МБ • До 5 фотографий</div>
+            </div>
+            <div class="photo-previews" id="photoPreviews"></div>
+          </div>
+          <div class="form-footer">
+            <button class="btn btn-ghost" onclick="goStep(1)">← Назад</button>
+            <button class="btn btn-primary" onclick="goStep(3)">Далее →</button>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="form-step" id="step3">
+          <div class="form-step-title">Ваши контакты</div>
+          <div class="form-step-subtitle">Необходимы для отправки уведомлений о статусе обращения</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Имя <span>*</span></label>
+              <input class="form-control" id="f-name" placeholder="Иван Иванович">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Телефон <span>*</span></label>
+              <input class="form-control" id="f-phone" placeholder="+7 (___) ___-__-__" type="tel">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email для уведомлений</label>
+            <input class="form-control" id="f-email" placeholder="ivan@example.com" type="email">
+          </div>
+          <div style="background:var(--primary-light);border-radius:12px;padding:14px 16px;font-size:13px;color:var(--primary)">
+            🔒 Ваши данные защищены и не передаются третьим лицам. Используются только для связи по обращению.
+          </div>
+          <div class="form-footer">
+            <button class="btn btn-ghost" onclick="goStep(2)">← Назад</button>
+            <button class="btn btn-primary" onclick="submitComplaint()" id="btnSubmit">Отправить обращение →</button>
+          </div>
+        </div>
+
+        <!-- STEP 4: SUCCESS -->
+        <div class="form-step" id="step4">
+          <div class="success-state">
+            <div class="success-icon">✅</div>
+            <div class="success-title">Обращение зарегистрировано!</div>
+            <div class="success-subtitle">Ваша жалоба принята и направлена в ответственную организацию</div>
+            <div class="ticket-card">
+              <div class="ticket-label">Номер вашего обращения</div>
+              <div class="ticket-num" id="ticketNumber">ЖКХ-00-000000</div>
+              <div class="ticket-info">
+                Создано: <strong id="ticketDate">—</strong><br>
+                Категория: <strong id="ticketCat">—</strong><br>
+                Срок ответа: <strong id="ticketDeadline">—</strong>
+              </div>
+            </div>
+            <div style="font-size:14px;color:var(--muted);margin-bottom:24px">📧 Уведомление отправлено на ваш email</div>
+            <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+              <button class="btn btn-primary" onclick="copyTicket()">📋 Скопировать номер</button>
+              <button class="btn btn-ghost" onclick="trackFromSuccess()">🔍 Отследить статус</button>
+              <button class="btn btn-ghost" onclick="resetForm()">+ Подать ещё одну</button>
+            </div>
+            <div style="margin-top:28px;text-align:left;max-width:400px;margin-left:auto;margin-right:auto">
+              <div style="font-size:14px;font-weight:700;margin-bottom:12px">Что происходит дальше?</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted)"><div style="width:24px;height:24px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0">1</div>Управляющая компания получает уведомление в течение 1 часа</div>
+                <div style="display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted)"><div style="width:24px;height:24px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0">2</div>Специалист связывается с вами для уточнения деталей</div>
+                <div style="display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted)"><div style="width:24px;height:24px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0">3</div>После устранения вы получаете уведомление и можете оценить работу</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MAP -->
+<section id="map-section">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Карта</div>
+      <h2 class="section-title">Карта обращений</h2>
+      <p class="section-subtitle">Просматривайте активные проблемы в вашем районе</p>
+    </div>
+    <div class="map-filters">
+      <button class="map-filter active" onclick="filterMap(this,'all')">Все</button>
+      <button class="map-filter" onclick="filterMap(this,'new')">🔵 Новые</button>
+      <button class="map-filter" onclick="filterMap(this,'in_progress')">🟡 В работе</button>
+      <button class="map-filter" onclick="filterMap(this,'resolved')">🟢 Решённые</button>
+      <button class="map-filter" onclick="filterMap(this,1)">💧 Вода</button>
+      <button class="map-filter" onclick="filterMap(this,2)">🔥 Отопление</button>
+      <button class="map-filter" onclick="filterMap(this,6)">🛣️ Дороги</button>
+    </div>
+    <div class="map-layout">
+      <div class="map-container">
+        <div id="map"></div>
+        <div class="map-legend">
+          <div class="map-legend-title">Статус</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#2563EB"></div> Новое</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#F59E0B"></div> В работе</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#10B981"></div> Решено</div>
+        </div>
+      </div>
+      <div class="district-panel">
+        <div class="district-panel-header">
+          <div class="district-panel-title">Проблемные районы</div>
+          <div class="district-panel-sub">жалобы без финального статуса</div>
+        </div>
+        <div id="districtList"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRACKER -->
+<section id="tracker">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Отслеживание</div>
+      <h2 class="section-title">Проверить статус</h2>
+      <p class="section-subtitle">Введите номер обращения для просмотра текущего статуса</p>
+    </div>
+    <div class="tracker-container">
+      <div class="tracker-search-box">
+        <h3>🔍 Найти обращение</h3>
+        <div class="tracker-input-wrap">
+          <input class="form-control" id="trackerInput" placeholder="ЖКХ-26-XXXXXX" oninput="this.value=this.value.toUpperCase()">
+          <button class="tracker-search-btn" onclick="searchComplaint()">→</button>
+        </div>
+        <div class="tracker-hint">Введите номер, полученный при подаче жалобы</div>
+        <div id="trackerResult" style="margin-top:16px"></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-size:18px;font-weight:700">Последние обращения</div>
+          <div style="font-size:13px;color:var(--muted)">Обновлено только что</div>
+        </div>
+        <div id="complaintsList">
+          <div class="spinner"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATISTICS -->
+<section id="statistics">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Аналитика</div>
+      <h2 class="section-title">Статистика платформы</h2>
+      <p class="section-subtitle">Прозрачные данные о работе системы</p>
+    </div>
+    <div class="stats-numbers">
+      <div class="stat-num-card"><div class="stat-num-value" style="color:var(--primary)" id="sn-total">—</div><div class="stat-num-label">Всего обращений</div><div class="stat-num-trend trend-up">↑ 12% этот месяц</div></div>
+      <div class="stat-num-card"><div class="stat-num-value" style="color:var(--secondary)" id="sn-rate">—</div><div class="stat-num-label">Решено вовремя</div><div class="stat-num-trend trend-up">↑ 4%</div></div>
+      <div class="stat-num-card"><div class="stat-num-value" style="color:var(--warning)">6.4</div><div class="stat-num-label">Дней в среднем</div><div class="stat-num-trend trend-up">↓ −1.2 дня</div></div>
+      <div class="stat-num-card"><div class="stat-num-value" style="color:#7C3AED">4.2</div><div class="stat-num-label">Средняя оценка ★</div><div class="stat-num-trend trend-up">↑ +0.3</div></div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-card-title">Жалобы по категориям</div><canvas id="catChart" height="200"></canvas></div>
+      <div class="stat-card"><div class="stat-card-title">Динамика за 6 месяцев</div><canvas id="timeChart" height="200"></canvas></div>
+      <div class="stat-card"><div class="stat-card-title">Время решения по категориям</div><canvas id="resolveChart" height="200"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section id="faq">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">FAQ</div>
+      <h2 class="section-title">Частые вопросы</h2>
+    </div>
+    <div class="faq-grid" id="faqGrid"></div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="logo"><div class="logo-icon">🏗</div><div class="logo-text" style="color:white">ЖКХ<span>.Онлайн</span></div></div>
+      <p class="footer-desc">Платформа для подачи и отслеживания жалоб на качество жилищно-коммунальных услуг. Работает в 89 регионах России.</p>
+    </div>
+    <div>
+      <div class="footer-col-title">Разделы</div>
+      <ul class="footer-links">
+        <li><a href="#submit">Подать жалобу</a></li>
+        <li><a href="#tracker">Мои обращения</a></li>
+        <li><a href="#map-section">Карта</a></li>
+        <li><a href="#statistics">Статистика</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Информация</div>
+      <ul class="footer-links">
+        <li><a href="#">О платформе</a></li>
+        <li><a href="#">Нормативная база</a></li>
+        <li><a href="#">Регионы</a></li>
+        <li><a href="#">Новости</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Поддержка</div>
+      <ul class="footer-links">
+        <li><a href="#">Служба поддержки</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="#">Политика конфиденциальности</a></li>
+        <li><a href="#">Для ведомств</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div>© 2026 ЖКХ.Онлайн — Независимая платформа обращений</div>
+    <div>Техподдержка: 8-800-555-XX-XX (бесплатно)</div>
+  </div>
+</footer>
+
+</div><!-- /#mainPage -->
+
+<!-- ════════ AUTH MODAL ════════ -->
+<div class="auth-modal" id="authModal">
+  <div class="auth-box">
+    <div class="auth-header">
+      <div class="auth-logo"><div class="logo-icon">🏗</div><div class="logo-text" style="color:white">ЖКХ<span style="color:var(--primary)">.Онлайн</span></div></div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="authTab-login" onclick="switchAuthTab('login')">Войти</button>
+        <button class="auth-tab" id="authTab-register" onclick="switchAuthTab('register')">Регистрация</button>
+      </div>
+    </div>
+    <div class="auth-body">
+      <!-- LOGIN -->
+      <div class="auth-step active" id="authStep-login">
+        <div class="social-btns">
+          <button class="social-btn" onclick="showToast('info','В разработке','Вход через Госуслуги')">🏛 Через Госуслуги</button>
+          <button class="social-btn" onclick="showToast('info','В разработке','Вход по номеру телефона')">📱 По номеру телефона</button>
+        </div>
+        <div class="auth-divider">или по email</div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-control" id="loginEmail" type="email" placeholder="ivan@example.com">
+          <div class="field-error" id="loginEmailErr"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Пароль</label>
+          <div class="input-icon-wrap">
+            <input class="form-control" id="loginPass" type="password" placeholder="••••••••">
+            <span class="input-icon" onclick="togglePass('loginPass',this)">👁</span>
+          </div>
+          <div class="field-error" id="loginPassErr"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox"> Запомнить меня</label>
+          <a style="font-size:13px;color:var(--primary);font-weight:600;cursor:pointer">Забыли пароль?</a>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;border:none" onclick="submitLogin()" id="btnLogin">Войти в аккаунт</button>
+        <div style="background:#D1FAE5;border-radius:10px;padding:10px 14px;margin-top:14px;font-size:12px;color:#065F46">
+          🎯 <strong>Демо:</strong> admin@zhalobi.ru / admin123
+        </div>
+        <div class="auth-footer-text">Нет аккаунта? <a onclick="switchAuthTab('register')">Зарегистрироваться</a></div>
+      </div>
+      <!-- REGISTER -->
+      <div class="auth-step" id="authStep-register">
+        <div class="form-group">
+          <label class="form-label">ФИО <span>*</span></label>
+          <input class="form-control" id="regName" placeholder="Иванов Иван Иванович">
+          <div class="field-error" id="regNameErr"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Email <span>*</span></label>
+            <input class="form-control" id="regEmail" type="email" placeholder="ivan@example.com">
+            <div class="field-error" id="regEmailErr"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Телефон</label>
+            <input class="form-control" id="regPhone" type="tel" placeholder="+7 (___) ___-__-__">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Пароль <span>*</span></label>
+          <div class="input-icon-wrap">
+            <input class="form-control" id="regPass" type="password" placeholder="Минимум 6 символов" oninput="checkPassStrength(this.value)">
+            <span class="input-icon" onclick="togglePass('regPass',this)">👁</span>
+          </div>
+          <div class="pass-strength"><div id="passStrFill" class="pass-strength-fill"></div></div>
+          <div class="field-error" id="regPassErr"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Повторите пароль <span>*</span></label>
+          <div class="input-icon-wrap">
+            <input class="form-control" id="regPassConfirm" type="password" placeholder="Повторите пароль">
+            <span class="input-icon" onclick="togglePass('regPassConfirm',this)">👁</span>
+          </div>
+          <div class="field-error" id="regConfirmErr"></div>
+        </div>
+        <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer;margin-bottom:20px">
+          <input type="checkbox" id="regAgree" style="width:15px;height:15px;margin-top:2px;flex-shrink:0">
+          Я согласен с <a style="color:var(--primary)">условиями использования</a> и <a style="color:var(--primary)">политикой конфиденциальности</a>
+        </label>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;border:none" onclick="submitRegister()" id="btnRegister">Создать аккаунт</button>
+        <div class="auth-footer-text">Уже есть аккаунт? <a onclick="switchAuthTab('login')">Войти</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ CABINET ════════ -->
+<section id="cabinet">
+  <div class="cabinet-topbar">
+    <div class="cabinet-topbar-inner">
+      <button class="cabinet-back-btn" onclick="closeCabinet()">← На главную</button>
+      <div style="font-size:13px;flex:1"><span style="color:var(--muted)">ЖКХ.Онлайн</span> <span style="color:var(--muted);margin:0 6px">/</span><span style="font-weight:600">Личный кабинет</span></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="avatar-circle" id="cabinetTopAvatar" style="width:32px;height:32px;font-size:13px"></div>
+        <span style="font-size:14px;font-weight:600" id="cabinetTopName"></span>
+      </div>
+    </div>
+  </div>
+  <div class="cabinet-wrap">
+    <div class="cabinet-header">
+      <h2>Добро пожаловать, <span id="cabinetWelcomeName"></span> 👋</h2>
+      <div style="font-size:14px;color:var(--muted);margin-top:4px">Управляйте своими обращениями и настройками профиля</div>
+    </div>
+    <div class="cabinet-layout">
+      <!-- SIDEBAR -->
+      <div class="cabinet-sidebar">
+        <div class="cabinet-profile-mini">
+          <div class="cabinet-avatar" id="sidebarAv"></div>
+          <div class="cabinet-user-name" id="sidebarName"></div>
+          <div class="cabinet-user-role">Пользователь</div>
+        </div>
+        <div class="cabinet-nav">
+          <div class="cabinet-nav-item active" data-tab="profile" onclick="switchCabinetTab('profile')"><span class="cabinet-nav-icon">👤</span> Профиль</div>
+          <div class="cabinet-nav-item" data-tab="complaints" onclick="switchCabinetTab('complaints')"><span class="cabinet-nav-icon">📋</span> Мои жалобы<span class="cabinet-nav-badge" id="compBadge" style="display:none">0</span></div>
+          <div class="cabinet-nav-item" data-tab="notifications" onclick="switchCabinetTab('notifications')"><span class="cabinet-nav-icon">🔔</span> Уведомления<span class="cabinet-nav-badge" id="notifBadgeSidebar" style="display:none">0</span></div>
+          <div class="cabinet-nav-item" data-tab="settings" onclick="switchCabinetTab('settings')"><span class="cabinet-nav-icon">⚙️</span> Настройки</div>
+          <div class="cabinet-nav-item" data-tab="admin" id="adminNavItem" style="display:none" onclick="switchCabinetTab('admin')"><span class="cabinet-nav-icon">🛡️</span> Администрирование</div>
+        </div>
+      </div>
+      <!-- CONTENT -->
+      <div>
+
+        <!-- PROFILE -->
+        <div class="cabinet-tab active" id="ctab-profile">
+          <div class="profile-header-card">
+            <div class="profile-big-avatar" id="profileBigAv"></div>
+            <div class="profile-header-info">
+              <div class="profile-header-name" id="profileHeaderName"></div>
+              <div class="profile-header-email" id="profileHeaderEmail"></div>
+              <div class="profile-header-since" id="profileHeaderSince"></div>
+            </div>
+            <button class="profile-edit-btn" onclick="switchCabinetTab('settings')">✏️ Редактировать</button>
+          </div>
+          <div class="profile-stats">
+            <div class="profile-stat-card"><div class="profile-stat-num" id="pStatTotal">—</div><div class="profile-stat-label">Всего жалоб</div></div>
+            <div class="profile-stat-card"><div class="profile-stat-num" style="color:var(--secondary)" id="pStatDone">—</div><div class="profile-stat-label">Решено</div></div>
+            <div class="profile-stat-card"><div class="profile-stat-num" style="color:var(--warning)" id="pStatActive">—</div><div class="profile-stat-label">В работе</div></div>
+          </div>
+          <div class="profile-info-card">
+            <div class="profile-info-title">📋 Личные данные</div>
+            <div class="profile-fields">
+              <div><div class="profile-field-label">ФИО</div><div class="profile-field-value" id="pfName"></div></div>
+              <div><div class="profile-field-label">Email</div><div class="profile-field-value" id="pfEmail"></div></div>
+              <div><div class="profile-field-label">Телефон</div><div class="profile-field-value" id="pfPhone"></div></div>
+              <div><div class="profile-field-label">Статус</div><div class="profile-field-value">Пользователь платформы</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COMPLAINTS -->
+        <div class="cabinet-tab" id="ctab-complaints">
+          <div class="cabinet-complaints-header">
+            <div style="font-size:18px;font-weight:700">Мои обращения</div>
+            <button class="btn btn-primary btn-sm" onclick="closeCabinet();setTimeout(scrollToForm,300)">+ Новая жалоба</button>
+          </div>
+          <div class="cabinet-filter-row">
+            <button class="cabinet-filter active" onclick="filterMyComplaints(this,'all')">Все</button>
+            <button class="cabinet-filter" onclick="filterMyComplaints(this,'new')">🔵 Новые</button>
+            <button class="cabinet-filter" onclick="filterMyComplaints(this,'in_progress')">🟡 В работе</button>
+            <button class="cabinet-filter" onclick="filterMyComplaints(this,'resolved')">🟢 Решённые</button>
+          </div>
+          <div id="myComplaintsList"><div class="spinner"></div></div>
+        </div>
+
+        <!-- NOTIFICATIONS -->
+        <div class="cabinet-tab" id="ctab-notifications">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div style="font-size:18px;font-weight:700">Уведомления</div>
+            <button class="btn btn-ghost btn-sm" onclick="markAllRead()">Прочитать все</button>
+          </div>
+          <div class="notif-list" id="notifListCabinet"><div class="spinner"></div></div>
+        </div>
+
+        <!-- SETTINGS -->
+        <div class="cabinet-tab" id="ctab-settings">
+          <div class="settings-section">
+            <div class="settings-section-title">👤 Личные данные</div>
+            <div class="form-row" style="margin-bottom:12px">
+              <div class="form-group"><label class="form-label">Фамилия <span>*</span></label><input class="form-control" id="setFLast" placeholder="Иванов"></div>
+              <div class="form-group"><label class="form-label">Имя <span>*</span></label><input class="form-control" id="setFFirst" placeholder="Иван"></div>
+              <div class="form-group"><label class="form-label">Отчество</label><input class="form-control" id="setFMiddle" placeholder="При наличии"></div>
+            </div>
+            <div class="form-row" style="margin-bottom:16px">
+              <div class="form-group"><label class="form-label">Телефон</label><input class="form-control" id="setFPhone" type="tel"></div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="saveProfile()" style="border:none">💾 Сохранить изменения</button>
+          </div>
+          <div class="settings-section">
+            <div class="settings-section-title">🔑 Безопасность</div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Новый пароль</label>
+                <div class="input-icon-wrap"><input class="form-control" id="setNewPass" type="password" placeholder="Минимум 6 символов"><span class="input-icon" onclick="togglePass('setNewPass',this)">👁</span></div>
+              </div>
+              <div class="form-group"><label class="form-label">Повторите пароль</label>
+                <div class="input-icon-wrap"><input class="form-control" id="setConfPass" type="password" placeholder="Повторите пароль"><span class="input-icon" onclick="togglePass('setConfPass',this)">👁</span></div>
+              </div>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="changePassword()">🔒 Изменить пароль</button>
+          </div>
+          <div class="settings-section">
+            <div class="settings-section-title">🔔 Уведомления</div>
+            <div class="toggle-row"><div><div class="toggle-label">SMS-уведомления</div><div class="toggle-desc">Статус обращения по SMS</div></div><div class="toggle-switch on" onclick="this.classList.toggle('on')"></div></div>
+            <div class="toggle-row"><div><div class="toggle-label">Email-уведомления</div><div class="toggle-desc">Подробности на почту</div></div><div class="toggle-switch on" onclick="this.classList.toggle('on')"></div></div>
+            <div class="toggle-row"><div><div class="toggle-label">Уведомления в браузере</div><div class="toggle-desc">Push-уведомления</div></div><div class="toggle-switch" onclick="this.classList.toggle('on')"></div></div>
+          </div>
+        </div>
+
+        <!-- ADMIN -->
+        <div class="cabinet-tab" id="ctab-admin">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+            <div style="font-size:22px;font-weight:800">Панель администратора</div>
+            <span class="admin-badge">🛡️ Admin</span>
+          </div>
+          <div class="admin-panel-grid">
+            <div class="admin-kpi blue"><div class="admin-kpi-num" id="kpi-total">—</div><div class="admin-kpi-label">Всего обращений</div></div>
+            <div class="admin-kpi green"><div class="admin-kpi-num" id="kpi-resolved">—</div><div class="admin-kpi-label">Решено</div></div>
+            <div class="admin-kpi yellow"><div class="admin-kpi-num" id="kpi-inprog">—</div><div class="admin-kpi-label">В работе</div></div>
+            <div class="admin-kpi red"><div class="admin-kpi-num" id="kpi-escalated">—</div><div class="admin-kpi-label">Эскалировано</div></div>
+            <div class="admin-kpi teal"><div class="admin-kpi-num" id="kpi-new">—</div><div class="admin-kpi-label">Новые</div></div>
+            <div class="admin-kpi purple"><div class="admin-kpi-num" id="kpi-rate">—</div><div class="admin-kpi-label">% обработки (KPI)</div></div>
+            <div class="admin-kpi blue"><div class="admin-kpi-num" id="kpi-auto">—</div><div class="admin-kpi-label">Авто-обработано (KPI)</div></div>
+          </div>
+          <div class="admin-table-wrap">
+            <div class="admin-table-header">
+              <div class="admin-table-title">📋 Управление обращениями</div>
+              <div style="display:flex;gap:8px">
+                <select class="form-control" style="width:140px;padding:6px 10px;font-size:13px" onchange="adminFilterStatus(this.value)">
+                  <option value="all">Все статусы</option>
+                  <option value="new">Новые</option>
+                  <option value="in_progress">В работе</option>
+                  <option value="escalated">Эскалированные</option>
+                  <option value="resolved">Решённые</option>
+                </select>
+                <button class="btn btn-primary btn-sm" onclick="adminExport()" style="border:none">⬇️ Экспорт</button>
+              </div>
+            </div>
+            <div class="admin-search">
+              <input class="form-control" id="adminSearch" placeholder="Поиск по номеру, теме, адресу..." oninput="adminSearchFn(this.value)" style="font-size:13px">
+            </div>
+            <div style="overflow-x:auto">
+              <table class="admin-table">
+                <thead><tr><th>Номер</th><th>Обращение</th><th>Адрес</th><th>Статус</th><th>Дата</th><th>Действия</th></tr></thead>
+                <tbody id="adminTBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="admin-table-wrap">
+            <div class="admin-table-header">
+              <div class="admin-table-title">👥 Пользователи платформы</div>
+            </div>
+            <div style="overflow-x:auto">
+              <table class="admin-table">
+                <thead><tr><th>Пользователь</th><th>Email</th><th>Роль</th><th>Дата регистрации</th></tr></thead>
+                <tbody id="adminUBody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div style="padding:16px;background:#FFF8E1;border-radius:var(--radius);font-size:.85rem;color:#5D4037;border-left:4px solid var(--warning)">
+            <strong>Автоэскалация:</strong> Жалобы не обработанные в течение установленного времени (72 часа) автоматически переводятся в статус «Эскалирована» фоновым async-процессом. KPI «Авто-обработано» отражает количество таких случаев.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ TIMELINE MODAL ════════ -->
+<div class="timeline-modal" id="timelineModal">
+  <div class="timeline-box">
+    <div class="modal-header">
+      <div>
+        <div style="font-size:20px;font-weight:800" id="modalTitle">—</div>
+        <div style="font-size:14px;color:var(--muted);margin-top:4px" id="modalSubtitle">—</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modalDesc"></div>
+    <div id="modalTimeline"></div>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+      <div style="font-size:14px;font-weight:600;margin-bottom:10px">Оцените работу исполнителя</div>
+      <div class="rating-stars">
+        <span class="star" onclick="setRating(1)">★</span>
+        <span class="star" onclick="setRating(2)">★</span>
+        <span class="star" onclick="setRating(3)">★</span>
+        <span class="star" onclick="setRating(4)">★</span>
+        <span class="star" onclick="setRating(5)">★</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- SCROLL TOP -->
+<button id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- FLOATING HELP -->
+<div class="floating-help">
+  <button class="help-btn" onclick="toggleHelp()">💬</button>
+  <div class="help-panel" id="helpPanel">
+    <div class="help-panel-title">Чем могу помочь?</div>
+    <a href="#how"     class="help-link" onclick="toggleHelp()"><span class="help-link-icon">✅</span> Как подать жалобу</a>
+    <a href="#tracker" class="help-link" onclick="toggleHelp()"><span class="help-link-icon">🔍</span> Проверить статус</a>
+    <a href="#faq"     class="help-link" onclick="toggleHelp()"><span class="help-link-icon">📘</span> Частые вопросы</a>
+    <a href="tel:88005550000" class="help-link"><span class="help-link-icon">📞</span> Позвонить на горячую линию</a>
+  </div>
+</div>
+
+<script src="/js/config.js?v=3"></script>
+<script src="/js/api.js?v=5"></script>
+<script src="/js/auth.js?v=3"></script>
+<script src="/js/app.js?v=5"></script>
+</body>
+</html>
