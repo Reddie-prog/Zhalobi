@@ -92,12 +92,13 @@ async def get_route(
     lat: float,
     lng: float,
     statuses: str = "new,in_progress,escalated",
+    category_id: Optional[int] = Query(None),
     admin: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ):
     from ..services.route_optimizer import RouteOptimizer
     facade = ComplaintFacade(db)
-    all_complaints = await facade.get_all_complaints(skip=0, limit=500)
+    all_complaints = await facade.get_all_complaints(skip=0, limit=500, category_id=category_id)
     status_list = [s.strip() for s in statuses.split(",")]
 
     points = [

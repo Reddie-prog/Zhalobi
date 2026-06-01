@@ -1165,6 +1165,15 @@ const ROUTE_STATUS_COLOR = { new:'#2563EB', in_progress:'#F59E0B', escalated:'#E
 const ROUTE_STATUS_LABEL = { new:'Новое', in_progress:'В работе', escalated:'Эскалировано', resolved:'Решено' };
 
 function initRouteMap() {
+  // Populate category filter from global _categories
+  const catSel = document.getElementById('routeCategoryFilter');
+  if (catSel && _categories.length && catSel.options.length === 1) {
+    _categories.forEach(c => {
+      const m = CAT_META[c.id] || { icon: '🏠' };
+      catSel.add(new Option(`${m.icon} ${c.name}`, c.id));
+    });
+  }
+
   if (_routeMap) { _routeMap.invalidateSize(); return; }
 
   _routeMap = L.map('routeMapCanvas', { zoomControl: false }).setView([55.7558, 37.6173], 11);
@@ -1214,7 +1223,8 @@ async function buildRoute() {
   try {
     const { lat, lng } = _startMarker.getLatLng();
     const statuses = document.getElementById('routeStatusFilter').value;
-    const data = await api.adminRoute(lat, lng, statuses);
+    const categoryId = document.getElementById('routeCategoryFilter').value;
+    const data = await api.adminRoute(lat, lng, statuses, categoryId);
     renderRouteResult(data, lat, lng);
   } catch(e) {
     showToast('error', e.message || 'Ошибка построения маршрута');

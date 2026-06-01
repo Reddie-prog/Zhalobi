@@ -46,8 +46,11 @@ const api = {
   deleteComplaint:  (id)    => request('DELETE', `/admin/complaints/${id}`),
   escalate:        (id, r) => request('POST', `/admin/complaints/${id}/escalate?reason=${encodeURIComponent(r)}`),
   adminUsers:      ()      => request('GET', '/admin/users'),
-  adminRoute:      (lat, lng, statuses='new,in_progress,escalated') =>
-    request('GET', `/admin/route?lat=${lat}&lng=${lng}&statuses=${encodeURIComponent(statuses)}`),
+  adminRoute:      (lat, lng, statuses='new,in_progress,escalated', categoryId='') => {
+    let url = `/admin/route?lat=${lat}&lng=${lng}&statuses=${encodeURIComponent(statuses)}`;
+    if (categoryId) url += `&category_id=${categoryId}`;
+    return request('GET', url);
+  },
 
   // Stats & notifications
   stats:           () => request('GET', '/stats'),
