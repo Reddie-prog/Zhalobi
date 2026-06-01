@@ -385,48 +385,77 @@ async function openModal(id) {
   }
 
   const m = CAT_META[complaint.category.id]||{icon:'🏠'};
-  document.getElementById('modalTitle').textContent = complaint.ticket_number;
+  const isDone = complaint.status==='resolved'||complaint.status==='closed';
+
+  // Этапы жизненного цикла
+  const STAGES = [
+    {key:'new',       label:'Новое',        color:'#2563EB'},
+    {key:'in_progress',label:'В работе',    color:'#F59E0B'},
+    {key:'escalated', label:'Эскалировано', color:'#EF4444'},
+    {key:'resolved',  label:'Решено',       color:'#10B981'},
+    {key:'closed',    label:'Закрыто',      color:'#64748B'},
+  ];
+  const curIdx = STAGES.findIndex(s=>s.key===complaint.status);
+  const cur = STAGES[curIdx]||STAGES[0];
+
+  // Найти даты этапов из событий
+  const events = complaint.events||[];
+  const stageDate = key => {
+    const ev = events.find(e=>e.new_status===key||(key==='new'&&e.event_type==='created'));
+    return ev ? fmtDate(ev.created_at).split(',')[0] : '';
+  };
+
+  // Шапка
+  document.getElementById('modalTitle').innerHTML = esc(complaint.ticket_number);
   document.getElementById('modalSubtitle').innerHTML =
-    `${m.icon} ${esc(complaint.category.name)} &bull; 📍 ${esc(complaint.address)}`;
+    `${m.icon} <b>${esc(complaint.category.name)}</b> &nbsp;·&nbsp; 📍 ${esc(complaint.address)} &nbsp;·&nbsp; 📅 ${fmtDate(complaint.created_at)}`;
+
+  // Описание + прогресс
   document.getElementById('modalDesc').innerHTML = `
-    <div style="margin:16px 0 0;padding:16px;background:#F8FAFC;border-radius:12px;border-left:3px solid var(--primary)">
-      <div style="font-size:15px;font-weight:700;color:#0F172A;margin-bottom:8px">${esc(complaint.title)}</div>
-      <div style="font-size:14px;color:#475569;line-height:1.7">${esc(complaint.description)}</div>
+    <div class="mc-body">
+      <div class="mc-title">${esc(complaint.title)}</div>
+      <div class="mc-desc">${esc(complaint.description)}</div>
+    </div>
+    <div class="mc-stages">
+      <div class="mc-stages-header">
+        <span class="mc-stages-lbl">Этап</span>
+        <span class="mc-stages-cur" style="color:${cur.color}">${cur.label}</span>
+        <span class="mc-stages-progress">${curIdx+1} / ${STAGES.length}</span>
+      </div>
+      <div class="mc-track">
+        ${STAGES.map((s,i)=>`
+          <div class="mc-stage-wrap">
+            <div class="mc-dot ${i<curIdx?'mc-done':i===curIdx?'mc-active':''}" style="${i<=curIdx?`background:${s.color};border-color:${s.color}`:''}"></div>
+            <div class="mc-stage-label">${s.label}</div>
+            ${stageDate(s.key)?`<div class="mc-stage-date">${stageDate(s.key)}</div>`:''}
+          </div>
+          ${i<STAGES.length-1?`<div class="mc-line ${i<curIdx?'mc-done':''}" style="${i<curIdx?`background:${STAGES[i+1].color}`:''}"></div>`:''}
+        `).join('')}
+      </div>
     </div>`;
 
+  // Заявитель (только админ)
   const applicantEl = document.getElementById('modalApplicant');
   if(applicantEl) {
     if(user?.is_admin && complaint.user) {
       const u = complaint.user;
       applicantEl.innerHTML = `
-        <div style="margin:12px 0 0;padding:14px 16px;background:#F0F7FF;border-radius:12px;border:1px solid #BFDBFE">
-          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#2563EB;margin-bottom:10px">👤 Заявитель</div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-            <div>
-              <div style="font-size:11px;color:#64748B;margin-bottom:2px">ФИО</div>
-              <div style="font-size:13px;font-weight:600;color:#0F172A">${esc(u.full_name||'—')}</div>
-            </div>
-            <div>
-              <div style="font-size:11px;color:#64748B;margin-bottom:2px">Email</div>
-              <div style="font-size:13px;font-weight:600;color:#0F172A">${esc(u.email||'—')}</div>
-            </div>
-            <div>
-              <div style="font-size:11px;color:#64748B;margin-bottom:2px">Телефон</div>
-              <div style="font-size:13px;font-weight:600;color:#0F172A">${esc(complaint.contact_phone||u.phone||'—')}</div>
-            </div>
-          </div>
+        <div class="modal-applicant-row">
+          <span class="modal-applicant-lbl">Заявитель</span>
+          <span class="modal-applicant-name">${esc(u.full_name||'—')}</span>
+          <a class="modal-applicant-link" href="mailto:${esc(u.email)}">${esc(u.email)}</a>
+          <span class="modal-applicant-phone">${esc(complaint.contact_phone||u.phone||'—')}</span>
         </div>`;
-    } else {
-      applicantEl.innerHTML = '';
-    }
+    } else { applicantEl.innerHTML=''; }
   }
 
-  const events = complaint.events||[];
-  document.getElementById('modalTimeline').innerHTML = `<div class="timeline">` +
-    (events.length ? events.slice().reverse().map(ev=>{
-      const isLast = ev === events[0];
-      const cls = isLast && complaint.status!=='resolved'&&complaint.status!=='closed' ? 'current' : 'done';
-      const evLabels={created:'Обращение зарегистрировано',status_changed:'Изменён статус',escalated:'Эскалация',assigned:'Назначен исполнитель'};
+  // История
+  const evLabels={created:'Зарегистрировано',status_changed:'Изменён статус',escalated:'Эскалация',assigned:'Назначен исполнитель'};
+  document.getElementById('modalTimeline').innerHTML = `
+    <div class="mc-history-title">История событий</div>
+    <div class="timeline">` +
+    (events.length ? events.slice().reverse().map((ev,i)=>{
+      const cls = i===0 && !isDone ? 'current' : 'done';
       return `<div class="tl-item ${cls}">
         <div class="tl-date">${fmtDate(ev.created_at)}</div>
         <div class="tl-title">${evLabels[ev.event_type]||ev.event_type}${ev.new_status?` ${statusBadge(ev.new_status)}`:''}</div>
@@ -434,6 +463,9 @@ async function openModal(id) {
       </div>`;
     }).join('') : '<div class="tl-item done"><div class="tl-title">Обращение принято</div></div>')
     + '</div>';
+
+  const ratingEl = document.getElementById('modalRating');
+  if(ratingEl) ratingEl.style.display = isDone ? '' : 'none';
 
   document.getElementById('timelineModal').classList.add('open');
   document.body.style.overflow='hidden';
@@ -465,6 +497,7 @@ async function initMap() {
     subdomains:'abcd',maxZoom:19
   }).addTo(_map);
   L.control.zoom({position:'topright'}).addTo(_map);
+  _map.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
 
   try {
     const complaints = await api.mapComplaints();
@@ -833,6 +866,8 @@ function openCabinet(tab) {
 function closeCabinet() {
   document.getElementById('cabinet').classList.remove('active');
   document.getElementById('mainPage').classList.remove('hidden');
+  sessionStorage.removeItem('cabinetTab');
+  history.replaceState(null, '', window.location.pathname);
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -873,6 +908,8 @@ function fillCabinetUI() {
 function switchCabinetTab(tab) {
   document.querySelectorAll('.cabinet-nav-item').forEach(i=>i.classList.toggle('active',i.dataset.tab===tab));
   document.querySelectorAll('.cabinet-tab').forEach(t=>t.classList.toggle('active',t.id==='ctab-'+tab));
+  sessionStorage.setItem('cabinetTab', tab);
+  history.replaceState(null, '', '#cabinet/' + tab);
   if(tab==='complaints') loadMyComplaints();
   if(tab==='notifications') loadCabinetNotifs();
   if(tab==='admin') loadAdminPanel();
@@ -1029,9 +1066,12 @@ function renderAdminTable(q) {
       <td>${statusBadge(c.status)}</td>
       <td>${fmtDate(c.created_at)}</td>
       <td>
-        <select class="status-select s-${c.status}" onchange="adminStatus(${c.id},this.value,this)">
-          ${Object.entries(STATUS_CFG).map(([val,cfg])=>`<option value="${val}"${c.status===val?' selected':''}>${cfg.label}</option>`).join('')}
-        </select>
+        <div style="display:flex;align-items:center;gap:8px">
+          <select class="status-select s-${c.status}" onchange="adminStatus(${c.id},this.value,this)">
+            ${Object.entries(STATUS_CFG).map(([val,cfg])=>`<option value="${val}"${c.status===val?' selected':''}>${cfg.label}</option>`).join('')}
+          </select>
+          <button class="admin-del-btn" onclick="adminDelete(${c.id})" title="Удалить жалобу">−</button>
+        </div>
       </td>
     </tr>`;
   }).join('');
@@ -1053,6 +1093,17 @@ function renderAdminUsers(users) {
       <td>${fmtDate(u.created_at)}</td>
     </tr>`;
   }).join('');
+}
+
+async function adminDelete(id) {
+  const c = _adminAll.find(x=>x.id===id);
+  if(!confirm(`Удалить жалобу ${c?.ticket_number||'#'+id}? Это действие необратимо.`)) return;
+  try {
+    await api.deleteComplaint(id);
+    _adminAll = _adminAll.filter(x=>x.id!==id);
+    renderAdminTable(document.getElementById('adminSearch')?.value||'');
+    showToast('success','Жалоба удалена');
+  } catch(e){ showToast('error', e.message||'Ошибка удаления'); }
 }
 
 async function adminStatus(id, status, selectEl) {
@@ -1119,6 +1170,14 @@ document.addEventListener('click', e=>{
 document.addEventListener('DOMContentLoaded', async () => {
   // Auth
   if(auth.isLoggedIn()) updateHeaderAuth();
+
+  // Restore cabinet state on reload (sessionStorage primary, URL hash fallback)
+  if(auth.isLoggedIn()) {
+    const savedTab = sessionStorage.getItem('cabinetTab');
+    const hashMatch = window.location.hash.match(/^#cabinet\/(.+)$/);
+    const tab = savedTab || (hashMatch && hashMatch[1]);
+    if(tab) openCabinet(tab);
+  }
 
   // Load stats
   const stats = await loadStats();
