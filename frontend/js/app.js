@@ -1045,7 +1045,6 @@ async function loadAdminPanel() {
     renderAdminTable('');
     renderAdminUsers(users);
     setTimeout(initRouteMap, 100);
-    setTimeout(renderDbSchema, 200);
   } catch(e){ showToast('error','Ошибка загрузки администратора'); }
 }
 
@@ -1153,18 +1152,6 @@ function adminExport() {
   a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);
   a.download='zhalobi_export.csv'; a.click();
   showToast('success','Экспорт готов');
-}
-
-/* ═══════════════════════════════════════════════════════
-   DB SCHEMA
-═══════════════════════════════════════════════════════ */
-let _schemaRendered = false;
-function renderDbSchema() {
-  if (_schemaRendered || !window._mermaid) return;
-  const el = document.getElementById('erDiagram');
-  if (!el) return;
-  _schemaRendered = true;
-  window._mermaid.run({ nodes: [el] });
 }
 
 /* ═══════════════════════════════════════════════════════
