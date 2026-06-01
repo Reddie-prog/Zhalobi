@@ -2,134 +2,51 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>ЖКХ.Онлайн — ER-диаграмма базы данных</title>
+  <title>ER-диаграмма — ЖКХ.Онлайн</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #F8FAFC;
-      color: #0F172A;
-      min-height: 100vh;
+      margin: 0;
       padding: 40px 24px;
-    }
-    header {
-      text-align: center;
-      margin-bottom: 36px;
-    }
-    header h1 {
-      font-size: 26px;
-      font-weight: 800;
-      color: #0F172A;
-      margin-bottom: 6px;
-    }
-    header p {
-      font-size: 14px;
-      color: #64748B;
-    }
-    .badge {
-      display: inline-block;
-      background: #EFF6FF;
-      color: #2563EB;
-      border: 1px solid #BFDBFE;
-      border-radius: 100px;
-      padding: 3px 12px;
-      font-size: 12px;
-      font-weight: 600;
-      margin: 4px;
-    }
-    .card {
-      background: white;
-      border-radius: 16px;
-      border: 1px solid #E2E8F0;
-      box-shadow: 0 4px 24px rgba(0,0,0,.06);
-      padding: 32px;
-      max-width: 1100px;
-      margin: 0 auto 32px;
-    }
-    .card-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: #64748B;
-      text-transform: uppercase;
-      letter-spacing: .6px;
-      margin-bottom: 20px;
-    }
-    #diagram-wrap {
-      overflow-x: auto;
-    }
-    #diagram-wrap svg {
-      max-width: 100%;
-      height: auto;
-    }
-    .tables-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 16px;
-    }
-    .table-card {
-      border-radius: 12px;
-      border: 1.5px solid #E2E8F0;
-      overflow: hidden;
-    }
-    .table-head {
-      padding: 10px 14px;
-      font-size: 13px;
-      font-weight: 700;
-      color: white;
-    }
-    .table-fields {
-      padding: 10px 14px;
-      font-size: 12px;
-      color: #475569;
-      line-height: 1.9;
-    }
-    .field-pk  { color: #2563EB; font-weight: 700; }
-    .field-fk  { color: #7C3AED; }
-    .field-uk  { color: #059669; }
-    .relations-list {
-      list-style: none;
+      background: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-    }
-    .relation-item {
-      display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      background: #F8FAFC;
-      border-radius: 10px;
-      font-size: 13px;
     }
-    .rel-from { font-weight: 700; color: #0F172A; }
-    .rel-arrow { color: #94A3B8; font-size: 16px; }
-    .rel-to { font-weight: 700; color: #0F172A; }
-    .rel-label { color: #64748B; margin-left: auto; font-style: italic; }
-    .rel-card { font-size: 11px; background: #EFF6FF; color: #2563EB; padding: 2px 8px; border-radius: 100px; font-weight: 600; white-space: nowrap; }
-    footer {
-      text-align: center;
-      font-size: 12px;
-      color: #94A3B8;
-      margin-top: 8px;
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0F172A;
+      margin: 0 0 4px;
+    }
+    p {
+      font-size: 13px;
+      color: #64748B;
+      margin: 0 0 32px;
+    }
+    .diagram-wrap {
+      background: white;
+      border-radius: 20px;
+      border: 1px solid #E2E8F0;
+      box-shadow: 0 4px 32px rgba(0,0,0,.07);
+      padding: 32px;
+      width: 100%;
+      max-width: 1000px;
+      overflow-x: auto;
+    }
+    .diagram-wrap svg {
+      display: block;
+      margin: 0 auto;
+      max-width: 100%;
+      height: auto;
     }
   </style>
 </head>
 <body>
+  <h1>ЖКХ.Онлайн — Схема базы данных</h1>
+  <p>5 таблиц · SQLAlchemy ORM · PostgreSQL · 7 связей</p>
 
-<header>
-  <h1>🏛️ ЖКХ.Онлайн — Схема базы данных</h1>
-  <p style="margin-top:8px">
-    <span class="badge">5 таблиц</span>
-    <span class="badge">SQLAlchemy ORM</span>
-    <span class="badge">PostgreSQL</span>
-    <span class="badge">7 связей</span>
-  </p>
-</header>
-
-<!-- ER-ДИАГРАММА -->
-<div class="card">
-  <div class="card-title">ER-диаграмма</div>
-  <div id="diagram-wrap">
+  <div class="diagram-wrap">
     <pre class="mermaid">
 erDiagram
     USERS {
@@ -194,149 +111,10 @@ erDiagram
     USERS ||--o{ COMPLAINT_EVENTS : "создаёт"
     </pre>
   </div>
-</div>
 
-<!-- ТАБЛИЦЫ -->
-<div class="card">
-  <div class="card-title">Описание таблиц</div>
-  <div class="tables-grid">
-
-    <div class="table-card">
-      <div class="table-head" style="background:#2563EB">USERS</div>
-      <div class="table-fields">
-        <div class="field-pk">🔑 id — INT PK</div>
-        <div class="field-uk">🔒 email — VARCHAR UK</div>
-        <div>password_hash — VARCHAR</div>
-        <div>full_name — VARCHAR</div>
-        <div>phone — VARCHAR</div>
-        <div>is_admin — BOOLEAN</div>
-        <div>created_at — DATETIME</div>
-      </div>
-    </div>
-
-    <div class="table-card">
-      <div class="table-head" style="background:#7C3AED">CATEGORIES</div>
-      <div class="table-fields">
-        <div class="field-pk">🔑 id — INT PK</div>
-        <div>name — VARCHAR</div>
-        <div>description — TEXT</div>
-        <div>icon — VARCHAR</div>
-        <div>auto_escalation_hours — INT</div>
-      </div>
-    </div>
-
-    <div class="table-card">
-      <div class="table-head" style="background:#0E7490">COMPLAINTS</div>
-      <div class="table-fields">
-        <div class="field-pk">🔑 id — INT PK</div>
-        <div class="field-uk">🔒 ticket_number — VARCHAR UK</div>
-        <div class="field-fk">🔗 user_id → USERS</div>
-        <div class="field-fk">🔗 category_id → CATEGORIES</div>
-        <div class="field-fk">🔗 assigned_to → USERS</div>
-        <div>title — VARCHAR</div>
-        <div>description — TEXT</div>
-        <div>address — VARCHAR</div>
-        <div>lat / lng — VARCHAR</div>
-        <div>status — VARCHAR</div>
-        <div>priority — VARCHAR</div>
-        <div>created_at — DATETIME</div>
-        <div>updated_at — DATETIME</div>
-        <div>escalated_at — DATETIME</div>
-        <div>resolved_at — DATETIME</div>
-      </div>
-    </div>
-
-    <div class="table-card">
-      <div class="table-head" style="background:#DC2626">COMPLAINT_EVENTS</div>
-      <div class="table-fields">
-        <div class="field-pk">🔑 id — INT PK</div>
-        <div class="field-fk">🔗 complaint_id → COMPLAINTS</div>
-        <div class="field-fk">🔗 created_by → USERS</div>
-        <div>event_type — VARCHAR</div>
-        <div>old_status — VARCHAR</div>
-        <div>new_status — VARCHAR</div>
-        <div>comment — TEXT</div>
-        <div>created_at — DATETIME</div>
-      </div>
-    </div>
-
-    <div class="table-card">
-      <div class="table-head" style="background:#059669">NOTIFICATIONS</div>
-      <div class="table-fields">
-        <div class="field-pk">🔑 id — INT PK</div>
-        <div class="field-fk">🔗 user_id → USERS</div>
-        <div class="field-fk">🔗 complaint_id → COMPLAINTS</div>
-        <div>message — TEXT</div>
-        <div>is_read — BOOLEAN</div>
-        <div>notification_type — VARCHAR</div>
-        <div>created_at — DATETIME</div>
-      </div>
-    </div>
-
-  </div>
-</div>
-
-<!-- СВЯЗИ -->
-<div class="card">
-  <div class="card-title">Связи между таблицами</div>
-  <ul class="relations-list">
-    <li class="relation-item">
-      <span class="rel-from">USERS</span>
-      <span class="rel-arrow">→</span>
-      <span class="rel-to">COMPLAINTS</span>
-      <span class="rel-card">один ко многим</span>
-      <span class="rel-label">пользователь подаёт жалобы</span>
-    </li>
-    <li class="relation-item">
-      <span class="rel-from">USERS</span>
-      <span class="rel-arrow">→</span>
-      <span class="rel-to">COMPLAINTS</span>
-      <span class="rel-card">один ко многим</span>
-      <span class="rel-label">администратор назначен на жалобу</span>
-    </li>
-    <li class="relation-item">
-      <span class="rel-from">CATEGORIES</span>
-      <span class="rel-arrow">→</span>
-      <span class="rel-to">COMPLAINTS</span>
-      <span class="rel-card">один ко многим</span>
-      <span class="rel-label">жалоба принадлежит категории</span>
-    </li>
-    <li class="relation-item">
-      <span class="rel-from">COMPLAINTS</span>
-      <span class="rel-arrow">→</span>
-      <span class="rel-to">COMPLAINT_EVENTS</span>
-      <span class="rel-card">один ко многим</span>
-      <span class="rel-label">жалоба имеет историю событий</span>
-    </li>
-    <li class="relation-item">
-      <span class="rel-from">COMPLAINTS</span>
-      <span class="rel-arrow">→</span>
-      <span class="rel-to">NOTIFICATIONS</span>
-      <span class="rel-card">один ко многим</span>
-      <span class="rel-label">жалоба генерирует уведомления</span>
-    </li>
-    <li class="relation-item">
-      <span class="rel-from">USERS</span>
-      <span class="rel-arrow">→</span>
-      <span class="rel-to">NOTIFICATIONS</span>
-      <span class="rel-card">один ко многим</span>
-      <span class="rel-label">пользователь получает уведомления</span>
-    </li>
-    <li class="relation-item">
-      <span class="rel-from">USERS</span>
-      <span class="rel-arrow">→</span>
-      <span class="rel-to">COMPLAINT_EVENTS</span>
-      <span class="rel-card">один ко многим</span>
-      <span class="rel-label">администратор создаёт события</span>
-    </li>
-  </ul>
-</div>
-
-<footer>ЖКХ.Онлайн · SQLAlchemy ORM · PostgreSQL · 5 таблиц · 7 связей</footer>
-
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  mermaid.initialize({ startOnLoad: true, theme: 'default', er: { layoutDirection: 'TB', minEntityWidth: 100 } });
-</script>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'default', er: { layoutDirection: 'TB' } });
+  </script>
 </body>
 </html>
