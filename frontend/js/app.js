@@ -246,14 +246,43 @@ async function submitComplaint() {
   const btn = document.getElementById('btnSubmit');
   btn.disabled = true; btn.textContent = 'Отправка...';
   try {
+    const city   = document.getElementById('f-city').value.trim();
+    const street = document.getElementById('f-street').value.trim();
+    const address = city + ', ' + street;
+
+    // Геокодирование адреса
+    let lat = null, lng = null;
+    try {
+      const q = encodeURIComponent(address);
+      const geo = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`,
+        {headers:{'User-Agent':'Zhalobi/1.0'}});
+      const gd = await geo.json();
+      if (gd.length) { lat = gd[0].lat; lng = gd[0].lon; }
+    } catch(_) {}
+
     const complaint = await api.submit({
       category_id:   _state.catId,
-      title:         document.getElementById('f-city').value.trim() + ' — ' + document.getElementById('f-street').value.trim(),
+      title:         city + ' — ' + street,
       description:   document.getElementById('f-desc').value.trim(),
-      address:       document.getElementById('f-city').value.trim() + ', ' + document.getElementById('f-street').value.trim(),
+      address,
       priority:      _state.priority || 'medium',
       contact_phone: document.getElementById('f-phone').value.trim() || null,
+      lat, lng,
     });
+
+    // Добавляем метку на карту сразу если карта уже открыта
+    if (_map && lat && lng) {
+      addMapPin({
+        lat: parseFloat(lat), lng: parseFloat(lng),
+        cat: _state.catId || 8,
+        status: 'new',
+        title: complaint.title || (city + ' — ' + street),
+        addr: address,
+        district: '',
+        id: complaint.id,
+      });
+    }
+
     showSuccessStep(complaint);
     showToast('success','Жалоба зарегистрирована!','Номер: '+complaint.ticket_number);
   } catch(e) {
@@ -429,15 +458,33 @@ function setRating(v) {
 ═══════════════════════════════════════════════════════ */
 let _map, _markers=[];
 
-function initMap() {
+async function initMap() {
   _map = L.map('map',{zoomControl:false}).setView([55.75,37.62],12);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
     attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
     subdomains:'abcd',maxZoom:19
   }).addTo(_map);
   L.control.zoom({position:'topright'}).addTo(_map);
-  MAP_DEMO.forEach(c=>addMapPin(c));
-  renderDistrictStats();
+
+  try {
+    const complaints = await api.mapComplaints();
+    complaints.forEach(c => {
+      const district = MAP_DEMO.find(d => d.addr === c.address)?.district || '';
+      addMapPin({
+        lat: parseFloat(c.lat), lng: parseFloat(c.lng),
+        cat: c.category?.id || 8,
+        status: c.status,
+        title: c.title,
+        addr: c.address,
+        district,
+        id: c.id,
+      });
+    });
+    renderDistrictStats(complaints);
+  } catch(e) {
+    MAP_DEMO.forEach(c => addMapPin(c));
+    renderDistrictStats();
+  }
 }
 
 function addMapPin(c) {
@@ -468,11 +515,17 @@ function addMapPin(c) {
   _markers.push(marker);
 }
 
-function renderDistrictStats() {
+function renderDistrictStats(apiComplaints) {
   const el = document.getElementById('districtList');
   if (!el) return;
   const byDistrict = {};
-  MAP_DEMO.forEach(c => {
+  const source = apiComplaints
+    ? apiComplaints.map(c => ({
+        district: MAP_DEMO.find(d => d.addr === c.address)?.district || 'Другое',
+        status: c.status,
+      }))
+    : MAP_DEMO;
+  source.forEach(c => {
     const d = c.district || 'Прочие';
     if (!byDistrict[d]) byDistrict[d] = {total:0,new:0,in_progress:0,escalated:0,resolved:0};
     byDistrict[d].total++;

@@ -42,6 +42,8 @@ class Complaint(Base):
     description = Column(Text, nullable=False)
     address = Column(String(500), nullable=False)
     contact_phone = Column(String(20), nullable=True)
+    lat = Column(String(20), nullable=True)
+    lng = Column(String(20), nullable=True)
     status = Column(String(50), default="new")
     priority = Column(String(20), default="medium")
     created_at = Column(DateTime, default=datetime.utcnow)

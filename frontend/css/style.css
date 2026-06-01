@@ -188,10 +188,10 @@ textarea.form-control{resize:vertical;min-height:120px}
 #map-section{background:white;padding:80px 24px}
 .map-layout{display:flex;gap:20px;align-items:flex-start}
 .map-container{border-radius:24px;overflow:hidden;box-shadow:0 8px 40px rgba(37,99,235,.12);position:relative;border:1px solid var(--border);flex:1;min-width:0}
-#map{height:540px}
+#map{height:620px}
 
 /* ── DISTRICT PANEL ──────────────────────────────── */
-.district-panel{width:290px;flex-shrink:0;background:white;border:1px solid var(--border);border-radius:24px;box-shadow:0 4px 20px rgba(0,0,0,.06);display:flex;flex-direction:column;overflow:hidden}
+.district-panel{width:290px;flex-shrink:0;background:white;border:1px solid var(--border);border-radius:24px;box-shadow:0 4px 20px rgba(0,0,0,.06);display:flex;flex-direction:column;overflow:hidden;max-height:620px}
 .district-panel-header{padding:20px 20px 14px;border-bottom:1px solid var(--border)}
 .district-panel-title{font-size:16px;font-weight:700;color:#0F172A}
 .district-panel-sub{font-size:12px;color:var(--muted);margin-top:3px}

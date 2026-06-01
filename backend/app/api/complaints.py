@@ -12,6 +12,13 @@ from ..patterns.facade import ComplaintFacade
 router = APIRouter(prefix="/complaints", tags=["complaints"])
 
 
+@router.get("/map", response_model=List[ComplaintResponse])
+async def map_complaints(db: AsyncSession = Depends(get_db)):
+    facade = ComplaintFacade(db)
+    items = await facade.get_all_complaints(skip=0, limit=500)
+    return [ComplaintResponse.model_validate(c) for c in items if c.lat and c.lng]
+
+
 @router.get("/recent", response_model=List[ComplaintResponse])
 async def recent_complaints(
     limit: int = 5,

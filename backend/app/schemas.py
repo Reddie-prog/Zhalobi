@@ -51,6 +51,8 @@ class ComplaintCreate(BaseModel):
     address: str
     priority: str = "medium"
     contact_phone: Optional[str] = None
+    lat: Optional[str] = None
+    lng: Optional[str] = None
 
 
 class ComplaintUpdate(BaseModel):
@@ -81,6 +83,8 @@ class ComplaintResponse(BaseModel):
     description: str
     address: str
     contact_phone: Optional[str] = None
+    lat: Optional[str] = None
+    lng: Optional[str] = None
     status: str
     priority: str
     created_at: datetime
