@@ -539,6 +539,10 @@ table.admin-table{width:100%;border-collapse:collapse}
 .status-select.s-resolved{background:#D1FAE5;color:#065F46;border-color:#A7F3D0}
 .status-select.s-closed{background:#F3F4F6;color:#6B7280;border-color:#E5E7EB}
 
+/* ── DB SCHEMA (Mermaid) ─────────────────── */
+#erDiagram{background:#FAFBFC;border-radius:12px;padding:8px;min-height:120px}
+#erDiagram svg{max-width:100%;height:auto}
+
 /* ── ROUTE OPTIMIZER ────────────────────── */
 .route-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .15s;border:1px solid var(--border);margin-top:8px}
 .route-item:hover{background:#F8FAFC;border-color:#CBD5E1}
