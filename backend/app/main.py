@@ -60,7 +60,7 @@ async def seed_data():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting Жалоби ЖКХ platform...")
+    logger.info("Starting Жалобы ЖКХ platform...")
     await create_tables()
     await seed_data()
     setup_handlers()
@@ -79,7 +79,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Жалоби ЖКХ — API",
+    title="Жалобы ЖКХ — API",
     description="Асинхронная платформа сбора и обработки жалоб ЖКХ. "
                 "Паттерны: Facade, Observer, Command.",
     version="1.0.0",
@@ -102,4 +102,4 @@ app.include_router(stats_router, prefix="/api")
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "service": "Жалоби ЖКХ", "version": "1.0.0"}
+    return {"status": "ok", "service": "Жалобы ЖКХ", "version": "1.0.0"}

@@ -247,11 +247,12 @@ async function submitComplaint() {
   btn.disabled = true; btn.textContent = 'Отправка...';
   try {
     const complaint = await api.submit({
-      category_id: _state.catId,
-      title:       document.getElementById('f-city').value.trim() + ' — ' + document.getElementById('f-street').value.trim(),
-      description: document.getElementById('f-desc').value.trim(),
-      address:     document.getElementById('f-city').value.trim() + ', ' + document.getElementById('f-street').value.trim(),
-      priority:    _state.priority || 'medium',
+      category_id:   _state.catId,
+      title:         document.getElementById('f-city').value.trim() + ' — ' + document.getElementById('f-street').value.trim(),
+      description:   document.getElementById('f-desc').value.trim(),
+      address:       document.getElementById('f-city').value.trim() + ', ' + document.getElementById('f-street').value.trim(),
+      priority:      _state.priority || 'medium',
+      contact_phone: document.getElementById('f-phone').value.trim() || null,
     });
     showSuccessStep(complaint);
     showToast('success','Жалоба зарегистрирована!','Номер: '+complaint.ticket_number);
@@ -363,6 +364,33 @@ async function openModal(id) {
       <div style="font-size:15px;font-weight:700;color:#0F172A;margin-bottom:8px">${esc(complaint.title)}</div>
       <div style="font-size:14px;color:#475569;line-height:1.7">${esc(complaint.description)}</div>
     </div>`;
+
+  const applicantEl = document.getElementById('modalApplicant');
+  if(applicantEl) {
+    if(user?.is_admin && complaint.user) {
+      const u = complaint.user;
+      applicantEl.innerHTML = `
+        <div style="margin:12px 0 0;padding:14px 16px;background:#F0F7FF;border-radius:12px;border:1px solid #BFDBFE">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#2563EB;margin-bottom:10px">👤 Заявитель</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+            <div>
+              <div style="font-size:11px;color:#64748B;margin-bottom:2px">ФИО</div>
+              <div style="font-size:13px;font-weight:600;color:#0F172A">${esc(u.full_name||'—')}</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:#64748B;margin-bottom:2px">Email</div>
+              <div style="font-size:13px;font-weight:600;color:#0F172A">${esc(u.email||'—')}</div>
+            </div>
+            <div>
+              <div style="font-size:11px;color:#64748B;margin-bottom:2px">Телефон</div>
+              <div style="font-size:13px;font-weight:600;color:#0F172A">${esc(complaint.contact_phone||u.phone||'—')}</div>
+            </div>
+          </div>
+        </div>`;
+    } else {
+      applicantEl.innerHTML = '';
+    }
+  }
 
   const events = complaint.events||[];
   document.getElementById('modalTimeline').innerHTML = `<div class="timeline">` +
@@ -871,19 +899,28 @@ async function markAllRead() {
   showToast('success','Всё прочитано');
 }
 
-function saveProfile() {
+async function saveProfile() {
   const user = auth.getUser();
   if(!user) return;
   const fLast   = document.getElementById('setFLast')?.value.trim()   || '';
   const fFirst  = document.getElementById('setFFirst')?.value.trim()  || '';
   const fMiddle = document.getElementById('setFMiddle')?.value.trim() || '';
   const joined  = [fLast, fFirst, fMiddle].filter(Boolean).join(' ');
-  if(joined) user.full_name = joined;
-  user.phone = document.getElementById('setFPhone').value.trim()||user.phone;
-  auth.save(auth.getToken(), user);
-  updateHeaderAuth();
-  fillCabinetUI();
-  showToast('success','Профиль обновлён');
+  const phone   = document.getElementById('setFPhone').value.trim();
+  try {
+    const updated = await api.updateMe({
+      full_name: joined || user.full_name,
+      phone: phone || user.phone || '',
+    });
+    user.full_name = updated.full_name;
+    user.phone     = updated.phone;
+    auth.save(auth.getToken(), user);
+    updateHeaderAuth();
+    fillCabinetUI();
+    showToast('success','Профиль обновлён');
+  } catch(e) {
+    showToast('error','Ошибка сохранения');
+  }
 }
 
 function changePassword() {

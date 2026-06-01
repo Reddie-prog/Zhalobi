@@ -50,6 +50,7 @@ class ComplaintCreate(BaseModel):
     description: str
     address: str
     priority: str = "medium"
+    contact_phone: Optional[str] = None
 
 
 class ComplaintUpdate(BaseModel):
@@ -79,6 +80,7 @@ class ComplaintResponse(BaseModel):
     title: str
     description: str
     address: str
+    contact_phone: Optional[str] = None
     status: str
     priority: str
     created_at: datetime

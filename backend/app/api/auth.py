@@ -1,11 +1,18 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from typing import Optional
+from pydantic import BaseModel
 
 from ..database import get_db
 from ..models import User
 from ..schemas import UserCreate, UserResponse, LoginRequest, TokenResponse
 from ..auth import hash_password, verify_password, create_access_token, get_current_user
+
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -43,4 +50,19 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(user: User = Depends(get_current_user)):
+    return UserResponse.model_validate(user)
+
+
+@router.patch("/me", response_model=UserResponse)
+async def update_me(
+    data: UserUpdate,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if data.full_name is not None:
+        user.full_name = data.full_name
+    if data.phone is not None:
+        user.phone = data.phone or None
+    await db.commit()
+    await db.refresh(user)
     return UserResponse.model_validate(user)

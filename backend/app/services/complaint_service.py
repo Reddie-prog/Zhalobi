@@ -33,6 +33,7 @@ class ComplaintService:
             description=data["description"],
             address=data["address"],
             priority=data.get("priority", "medium"),
+            contact_phone=data.get("contact_phone"),
             status="new",
         )
         self.db.add(complaint)

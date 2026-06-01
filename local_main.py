@@ -18,7 +18,7 @@ app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn
-    print("\n🏗️  Жалоби ЖКХ — Local Dev Server")
+    print("\n🏗️  Жалобы ЖКХ — Local Dev Server")
     print("─" * 40)
     print("🌐  http://localhost:8000")
     print("📖  API docs: http://localhost:8000/docs")

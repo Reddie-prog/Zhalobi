@@ -28,6 +28,7 @@ const api = {
   me:       ()  => request('GET',  '/auth/me'),
 
   // Complaints
+  updateMe:        (d)  => request('PATCH', '/auth/me', d),
   categories:      ()   => request('GET', '/complaints/categories'),
   recentComplaints:(limit=5) => request('GET', `/complaints/recent?limit=${limit}`),
   submit:          (d)  => request('POST', '/complaints', d),
