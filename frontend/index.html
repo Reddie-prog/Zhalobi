@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="/css/style.css?v=5">
+  <link rel="stylesheet" href="/css/style.css?v=9">
 </head>
 <body>
 
@@ -133,10 +133,30 @@
     </div>
     <div class="steps-grid">
       <div class="steps-line"></div>
-      <div class="step-card"><div class="step-num">1</div><div class="step-title">Опишите проблему</div><div class="step-text">Выберите категорию, укажите адрес, добавьте фото и подробное описание</div></div>
-      <div class="step-card"><div class="step-num">2</div><div class="step-title">Регистрация обращения</div><div class="step-text">Ваша жалоба автоматически направляется в ответственную организацию</div></div>
-      <div class="step-card"><div class="step-num">3</div><div class="step-title">Получайте уведомления</div><div class="step-text">Следите за статусом по трек-номеру, получайте уведомления о каждом изменении</div></div>
-      <div class="step-card"><div class="step-num">4</div><div class="step-title">Оцените решение</div><div class="step-text">После закрытия жалобы поставьте оценку качеству работы исполнителя</div></div>
+      <div class="step-card" style="--accent:#2563EB">
+        <span class="step-counter">01</span>
+        <div class="step-icon" style="background:#EFF6FF">🔧</div>
+        <div class="step-title">Опишите проблему</div>
+        <div class="step-text">Выберите категорию неисправности, укажите адрес и подробно опишите ситуацию</div>
+      </div>
+      <div class="step-card" style="--accent:#7C3AED">
+        <span class="step-counter">02</span>
+        <div class="step-icon" style="background:#F5F3FF">🏛️</div>
+        <div class="step-title">Регистрация обращения</div>
+        <div class="step-text">Обращению присваивается номер и оно направляется в управляющую компанию</div>
+      </div>
+      <div class="step-card" style="--accent:#0E7490">
+        <span class="step-counter">03</span>
+        <div class="step-icon" style="background:#ECFEFF">📡</div>
+        <div class="step-title">Контроль исполнения</div>
+        <div class="step-text">Следите за статусом по трек-номеру и получайте уведомления о каждом изменении</div>
+      </div>
+      <div class="step-card" style="--accent:#059669">
+        <span class="step-counter">04</span>
+        <div class="step-icon" style="background:#ECFDF5">🏠</div>
+        <div class="step-title">Проблема устранена</div>
+        <div class="step-text">После выполнения работ оцените качество — это влияет на рейтинг организации</div>
+      </div>
     </div>
   </div>
 </section>
@@ -707,6 +727,29 @@
               </table>
             </div>
           </div>
+          <div class="admin-table-wrap" id="adminRouteSection">
+            <div class="admin-table-header">
+              <div class="admin-table-title">🗺️ Маршрут выезда бригады</div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <select id="routeStatusFilter" class="form-control" style="width:170px;padding:6px 10px;font-size:13px">
+                  <option value="new,in_progress,escalated">Все активные</option>
+                  <option value="escalated">Только эскалированные</option>
+                  <option value="new">Только новые</option>
+                  <option value="new,escalated">Новые + эскалированные</option>
+                </select>
+                <button class="btn btn-primary btn-sm" id="buildRouteBtn" onclick="buildRoute()" style="border:none;white-space:nowrap">📍 Построить маршрут</button>
+              </div>
+            </div>
+            <div id="routeEmpty" style="padding:20px 16px;text-align:center;color:var(--muted);font-size:13px">
+              Нажмите «Построить маршрут» — система определит геолокацию и рассчитает оптимальный порядок объезда активных жалоб алгоритмом ближайшего соседа (TSP-эвристика).
+            </div>
+            <div id="routeResult" style="display:none">
+              <div id="routeMapCanvas" style="height:380px;border-radius:12px;overflow:hidden;margin:0 16px 12px"></div>
+              <div id="routeSummary" style="padding:10px 16px;background:#EFF6FF;border-radius:10px;margin:0 16px 8px;font-size:13px;display:flex;gap:20px;flex-wrap:wrap;align-items:center"></div>
+              <div id="routeListEl" style="padding:0 16px 16px"></div>
+            </div>
+          </div>
+
           <div style="padding:16px;background:#FFF8E1;border-radius:var(--radius);font-size:.85rem;color:#5D4037;border-left:4px solid var(--warning)">
             <strong>Автоэскалация:</strong> Жалобы не обработанные в течение установленного времени (72 часа) автоматически переводятся в статус «Эскалирована» фоновым async-процессом. KPI «Авто-обработано» отражает количество таких случаев.
           </div>
@@ -721,16 +764,16 @@
 <div class="timeline-modal" id="timelineModal">
   <div class="timeline-box">
     <div class="modal-header">
-      <div>
-        <div style="font-size:20px;font-weight:800" id="modalTitle">—</div>
-        <div style="font-size:14px;color:var(--muted);margin-top:4px" id="modalSubtitle">—</div>
+      <div class="modal-header-left">
+        <div class="modal-ticket" id="modalTitle">—</div>
+        <div class="modal-meta" id="modalSubtitle">—</div>
       </div>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div id="modalDesc"></div>
     <div id="modalApplicant"></div>
     <div id="modalTimeline"></div>
-    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+    <div id="modalRating" style="display:none;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="font-size:14px;font-weight:600;margin-bottom:10px">Оцените работу исполнителя</div>
       <div class="rating-stars">
         <span class="star" onclick="setRating(1)">★</span>
@@ -762,8 +805,8 @@
 </div>
 
 <script src="/js/config.js?v=3"></script>
-<script src="/js/api.js?v=5"></script>
+<script src="/js/api.js?v=9"></script>
 <script src="/js/auth.js?v=3"></script>
-<script src="/js/app.js?v=5"></script>
+<script src="/js/app.js?v=9"></script>
 </body>
 </html>

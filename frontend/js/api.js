@@ -42,9 +42,12 @@ const api = {
     const q = new URLSearchParams(params).toString();
     return request('GET', '/admin/complaints' + (q ? '?' + q : ''));
   },
-  updateComplaint: (id, d) => request('PATCH', `/admin/complaints/${id}`, d),
+  updateComplaint:  (id, d) => request('PATCH',   `/admin/complaints/${id}`, d),
+  deleteComplaint:  (id)    => request('DELETE', `/admin/complaints/${id}`),
   escalate:        (id, r) => request('POST', `/admin/complaints/${id}/escalate?reason=${encodeURIComponent(r)}`),
   adminUsers:      ()      => request('GET', '/admin/users'),
+  adminRoute:      (lat, lng, statuses='new,in_progress,escalated') =>
+    request('GET', `/admin/route?lat=${lat}&lng=${lng}&statuses=${encodeURIComponent(statuses)}`),
 
   // Stats & notifications
   stats:           () => request('GET', '/stats'),

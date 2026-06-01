@@ -1154,6 +1154,104 @@ function adminExport() {
 }
 
 /* ═══════════════════════════════════════════════════════
+   ROUTE OPTIMIZER
+═══════════════════════════════════════════════════════ */
+let _routeMap = null;
+
+async function buildRoute() {
+  const btn = document.getElementById('buildRouteBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Геолокация...';
+
+  try {
+    const coords = await new Promise(resolve => {
+      if (!navigator.geolocation) {
+        resolve({ latitude: 55.7558, longitude: 37.6173 });
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        p => resolve({ latitude: p.coords.latitude, longitude: p.coords.longitude }),
+        () => resolve({ latitude: 55.7558, longitude: 37.6173 }),
+        { timeout: 6000 }
+      );
+    });
+
+    btn.textContent = '⏳ Оптимизация...';
+    const statuses = document.getElementById('routeStatusFilter').value;
+    const data = await api.adminRoute(coords.latitude, coords.longitude, statuses);
+    renderRouteResult(data, coords.latitude, coords.longitude);
+  } catch(e) {
+    showToast('error', e.message || 'Ошибка построения маршрута');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📍 Построить маршрут';
+  }
+}
+
+function renderRouteResult(data, startLat, startLng) {
+  document.getElementById('routeEmpty').style.display = 'none';
+  document.getElementById('routeResult').style.display = '';
+
+  document.getElementById('routeSummary').innerHTML = `
+    <span>📍 <b>${data.count}</b> ${data.count===1?'точка':data.count<5?'точки':'точек'}</span>
+    <span>📏 <b>${data.total_km} км</b> суммарно</span>
+    <span style="color:var(--muted);font-size:11px">Алгоритм: Greedy Nearest Neighbor</span>
+  `;
+
+  if (_routeMap) { _routeMap.remove(); _routeMap = null; }
+  _routeMap = L.map('routeMapCanvas').setView([startLat, startLng], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://openstreetmap.org">OSM</a>'
+  }).addTo(_routeMap);
+
+  const STATUS_COLOR = { new:'#2563EB', in_progress:'#F59E0B', escalated:'#EF4444', resolved:'#10B981' };
+
+  const startIcon = L.divIcon({
+    html: `<div style="width:34px;height:34px;background:#10B981;border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 8px rgba(0,0,0,.3)">🏁</div>`,
+    className:'', iconSize:[34,34], iconAnchor:[17,17]
+  });
+  L.marker([startLat, startLng], { icon: startIcon })
+    .addTo(_routeMap)
+    .bindPopup('<b>Точка старта</b>');
+
+  const latlngs = [[startLat, startLng]];
+
+  data.route.forEach((stop, i) => {
+    const color = STATUS_COLOR[stop.status] || '#64748B';
+    const icon = L.divIcon({
+      html: `<div style="width:28px;height:28px;background:${color};border:2.5px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,.3)">${i+1}</div>`,
+      className:'', iconSize:[28,28], iconAnchor:[14,14]
+    });
+    L.marker([parseFloat(stop.lat), parseFloat(stop.lng)], { icon })
+      .addTo(_routeMap)
+      .bindPopup(`<b>#${i+1} ${esc(stop.ticket_number)}</b><br>${esc(stop.title)}<br>📍 ${esc(stop.address)}<br><small>+${stop.dist_km} км от предыдущей точки</small>`);
+    latlngs.push([parseFloat(stop.lat), parseFloat(stop.lng)]);
+  });
+
+  L.polyline(latlngs, { color:'#2563EB', weight:2.5, dashArray:'8 5', opacity:.75 }).addTo(_routeMap);
+  if (latlngs.length > 1) _routeMap.fitBounds(L.latLngBounds(latlngs), { padding:[36, 36] });
+
+  const listEl = document.getElementById('routeListEl');
+  if (!data.route.length) {
+    listEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted)">Нет активных жалоб с координатами по выбранным статусам</div>';
+    return;
+  }
+
+  const STATUS_LABEL = { new:'Новое', in_progress:'В работе', escalated:'Эскалировано', resolved:'Решено' };
+  listEl.innerHTML = data.route.map((stop, i) => {
+    const color = STATUS_COLOR[stop.status] || '#64748B';
+    return `<div class="route-item" onclick="openModal(${stop.id})">
+      <div class="route-num" style="background:${color}">${i+1}</div>
+      <div class="route-info">
+        <div class="route-title">${esc(stop.ticket_number)} — ${esc(stop.title)}</div>
+        <div class="route-addr">📍 ${esc(stop.address)} · ${esc(stop.category)} · ${STATUS_LABEL[stop.status]||stop.status}</div>
+      </div>
+      <div class="route-dist">+${stop.dist_km} км</div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════
    HELP PANEL
 ═══════════════════════════════════════════════════════ */
 function toggleHelp() {
