@@ -1044,6 +1044,7 @@ async function loadAdminPanel() {
     _adminAll = complaints;
     renderAdminTable('');
     renderAdminUsers(users);
+    setTimeout(initRouteMap, 100);
   } catch(e){ showToast('error','Ошибка загрузки администратора'); }
 }
 
@@ -1157,29 +1158,64 @@ function adminExport() {
    ROUTE OPTIMIZER
 ═══════════════════════════════════════════════════════ */
 let _routeMap = null;
+let _startMarker = null;
+let _routeLayers = [];
+
+const ROUTE_STATUS_COLOR = { new:'#2563EB', in_progress:'#F59E0B', escalated:'#EF4444', resolved:'#10B981' };
+const ROUTE_STATUS_LABEL = { new:'Новое', in_progress:'В работе', escalated:'Эскалировано', resolved:'Решено' };
+
+function initRouteMap() {
+  if (_routeMap) { _routeMap.invalidateSize(); return; }
+
+  _routeMap = L.map('routeMapCanvas', { zoomControl: false }).setView([55.7558, 37.6173], 11);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd', maxZoom: 19
+  }).addTo(_routeMap);
+  L.control.zoom({ position: 'topright' }).addTo(_routeMap);
+  _routeMap.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
+
+  // Draggable start marker
+  const startIcon = L.divIcon({
+    html: `<div style="width:36px;height:36px;background:#10B981;border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 10px rgba(0,0,0,.25);cursor:grab">🏁</div>`,
+    className: '', iconSize: [36, 36], iconAnchor: [18, 18]
+  });
+  _startMarker = L.marker([55.7558, 37.6173], { icon: startIcon, draggable: true })
+    .addTo(_routeMap)
+    .bindTooltip('Точка старта — перетащите', { direction: 'top', offset: [0, -20] });
+
+  // Complaint dots (background layer, static)
+  const active = (_adminAll || []).filter(c => c.lat && c.lng && ['new','in_progress','escalated'].includes(c.status));
+  active.forEach(c => {
+    const color = ROUTE_STATUS_COLOR[c.status] || '#64748B';
+    const dot = L.divIcon({
+      html: `<div style="width:11px;height:11px;background:${color};border:2px solid white;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.2)"></div>`,
+      className: '', iconSize: [11, 11], iconAnchor: [5, 5]
+    });
+    L.marker([parseFloat(c.lat), parseFloat(c.lng)], { icon: dot })
+      .addTo(_routeMap)
+      .bindPopup(`<b>${esc(c.ticket_number)}</b><br>${esc(c.title)}<br>📍 ${esc(c.address)}`);
+  });
+
+  if (active.length) {
+    const bounds = L.latLngBounds(active.map(c => [parseFloat(c.lat), parseFloat(c.lng)]));
+    _routeMap.fitBounds(bounds, { padding: [40, 40] });
+    // Place start marker at center of complaints
+    const center = bounds.getCenter();
+    _startMarker.setLatLng(center);
+  }
+}
 
 async function buildRoute() {
+  if (!_startMarker) { showToast('warning', 'Карта ещё загружается'); return; }
   const btn = document.getElementById('buildRouteBtn');
   btn.disabled = true;
-  btn.textContent = '⏳ Геолокация...';
-
+  btn.textContent = '⏳ Оптимизация...';
   try {
-    const coords = await new Promise(resolve => {
-      if (!navigator.geolocation) {
-        resolve({ latitude: 55.7558, longitude: 37.6173 });
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        p => resolve({ latitude: p.coords.latitude, longitude: p.coords.longitude }),
-        () => resolve({ latitude: 55.7558, longitude: 37.6173 }),
-        { timeout: 6000 }
-      );
-    });
-
-    btn.textContent = '⏳ Оптимизация...';
+    const { lat, lng } = _startMarker.getLatLng();
     const statuses = document.getElementById('routeStatusFilter').value;
-    const data = await api.adminRoute(coords.latitude, coords.longitude, statuses);
-    renderRouteResult(data, coords.latitude, coords.longitude);
+    const data = await api.adminRoute(lat, lng, statuses);
+    renderRouteResult(data, lat, lng);
   } catch(e) {
     showToast('error', e.message || 'Ошибка построения маршрута');
   } finally {
@@ -1189,65 +1225,49 @@ async function buildRoute() {
 }
 
 function renderRouteResult(data, startLat, startLng) {
-  document.getElementById('routeEmpty').style.display = 'none';
-  document.getElementById('routeResult').style.display = '';
+  // Remove previous route layers (keep base tiles + complaint dots + start marker)
+  _routeLayers.forEach(l => _routeMap.removeLayer(l));
+  _routeLayers = [];
 
+  document.getElementById('routeSummary').style.display = '';
   document.getElementById('routeSummary').innerHTML = `
     <span>📍 <b>${data.count}</b> ${data.count===1?'точка':data.count<5?'точки':'точек'}</span>
     <span>📏 <b>${data.total_km} км</b> суммарно</span>
     <span style="color:var(--muted);font-size:11px">Алгоритм: Greedy Nearest Neighbor</span>
   `;
 
-  if (_routeMap) { _routeMap.remove(); _routeMap = null; }
-  _routeMap = L.map('routeMapCanvas', { zoomControl: false }).setView([startLat, startLng], 12);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: 'abcd', maxZoom: 19
-  }).addTo(_routeMap);
-  L.control.zoom({ position: 'topright' }).addTo(_routeMap);
-  _routeMap.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
-
-  const STATUS_COLOR = { new:'#2563EB', in_progress:'#F59E0B', escalated:'#EF4444', resolved:'#10B981' };
-
-  const startIcon = L.divIcon({
-    html: `<div style="width:34px;height:34px;background:#10B981;border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 8px rgba(0,0,0,.3)">🏁</div>`,
-    className:'', iconSize:[34,34], iconAnchor:[17,17]
-  });
-  L.marker([startLat, startLng], { icon: startIcon })
-    .addTo(_routeMap)
-    .bindPopup('<b>Точка старта</b>');
-
   const latlngs = [[startLat, startLng]];
 
   data.route.forEach((stop, i) => {
-    const color = STATUS_COLOR[stop.status] || '#64748B';
+    const color = ROUTE_STATUS_COLOR[stop.status] || '#64748B';
     const icon = L.divIcon({
       html: `<div style="width:28px;height:28px;background:${color};border:2.5px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,.3)">${i+1}</div>`,
-      className:'', iconSize:[28,28], iconAnchor:[14,14]
+      className: '', iconSize: [28, 28], iconAnchor: [14, 14]
     });
-    L.marker([parseFloat(stop.lat), parseFloat(stop.lng)], { icon })
+    const m = L.marker([parseFloat(stop.lat), parseFloat(stop.lng)], { icon })
       .addTo(_routeMap)
-      .bindPopup(`<b>#${i+1} ${esc(stop.ticket_number)}</b><br>${esc(stop.title)}<br>📍 ${esc(stop.address)}<br><small>+${stop.dist_km} км от предыдущей точки</small>`);
+      .bindPopup(`<b>#${i+1} ${esc(stop.ticket_number)}</b><br>${esc(stop.title)}<br>📍 ${esc(stop.address)}<br><small>+${stop.dist_km} км</small>`);
+    _routeLayers.push(m);
     latlngs.push([parseFloat(stop.lat), parseFloat(stop.lng)]);
   });
 
-  L.polyline(latlngs, { color:'#2563EB', weight:2.5, dashArray:'8 5', opacity:.75 }).addTo(_routeMap);
-  if (latlngs.length > 1) _routeMap.fitBounds(L.latLngBounds(latlngs), { padding:[36, 36] });
+  const poly = L.polyline(latlngs, { color:'#2563EB', weight:2.5, dashArray:'8 5', opacity:.75 }).addTo(_routeMap);
+  _routeLayers.push(poly);
+  if (latlngs.length > 1) _routeMap.fitBounds(L.latLngBounds(latlngs), { padding: [36, 36] });
 
   const listEl = document.getElementById('routeListEl');
+  listEl.style.display = '';
   if (!data.route.length) {
-    listEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted)">Нет активных жалоб с координатами по выбранным статусам</div>';
+    listEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted)">Нет жалоб с координатами по выбранным статусам</div>';
     return;
   }
-
-  const STATUS_LABEL = { new:'Новое', in_progress:'В работе', escalated:'Эскалировано', resolved:'Решено' };
   listEl.innerHTML = data.route.map((stop, i) => {
-    const color = STATUS_COLOR[stop.status] || '#64748B';
+    const color = ROUTE_STATUS_COLOR[stop.status] || '#64748B';
     return `<div class="route-item" onclick="openModal(${stop.id})">
       <div class="route-num" style="background:${color}">${i+1}</div>
       <div class="route-info">
         <div class="route-title">${esc(stop.ticket_number)} — ${esc(stop.title)}</div>
-        <div class="route-addr">📍 ${esc(stop.address)} · ${esc(stop.category)} · ${STATUS_LABEL[stop.status]||stop.status}</div>
+        <div class="route-addr">📍 ${esc(stop.address)} · ${esc(stop.category)} · ${ROUTE_STATUS_LABEL[stop.status]||stop.status}</div>
       </div>
       <div class="route-dist">+${stop.dist_km} км</div>
     </div>`;

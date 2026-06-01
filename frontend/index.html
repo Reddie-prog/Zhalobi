@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="/css/style.css?v=10">
+  <link rel="stylesheet" href="/css/style.css?v=11">
 </head>
 <body>
 
@@ -740,14 +740,12 @@
                 <button class="btn btn-primary btn-sm" id="buildRouteBtn" onclick="buildRoute()" style="border:none;white-space:nowrap">📍 Построить маршрут</button>
               </div>
             </div>
-            <div id="routeEmpty" style="padding:20px 16px;text-align:center;color:var(--muted);font-size:13px">
-              Нажмите «Построить маршрут» — система определит геолокацию и рассчитает оптимальный порядок объезда активных жалоб алгоритмом ближайшего соседа (TSP-эвристика).
+            <div style="padding:6px 16px 10px;font-size:12px;color:var(--muted)">
+              Перетащите маркер 🏁 на карте, чтобы выбрать точку старта, затем нажмите «Построить маршрут».
             </div>
-            <div id="routeResult" style="display:none">
-              <div class="map-container" style="margin:0 16px 12px"><div id="routeMapCanvas" style="height:420px"></div></div>
-              <div id="routeSummary" style="padding:10px 16px;background:#EFF6FF;border-radius:10px;margin:0 16px 8px;font-size:13px;display:flex;gap:20px;flex-wrap:wrap;align-items:center"></div>
-              <div id="routeListEl" style="padding:0 16px 16px"></div>
-            </div>
+            <div class="map-container" style="margin:0 16px 12px"><div id="routeMapCanvas" style="height:420px"></div></div>
+            <div id="routeSummary" style="display:none;padding:10px 16px;background:#EFF6FF;border-radius:10px;margin:0 16px 8px;font-size:13px;display:flex;gap:20px;flex-wrap:wrap;align-items:center"></div>
+            <div id="routeListEl" style="display:none;padding:0 16px 16px"></div>
           </div>
 
           <div style="padding:16px;background:#FFF8E1;border-radius:var(--radius);font-size:.85rem;color:#5D4037;border-left:4px solid var(--warning)">
@@ -807,6 +805,6 @@
 <script src="/js/config.js?v=3"></script>
 <script src="/js/api.js?v=9"></script>
 <script src="/js/auth.js?v=3"></script>
-<script src="/js/app.js?v=10"></script>
+<script src="/js/app.js?v=11"></script>
 </body>
 </html>
