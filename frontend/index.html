@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="/css/style.css?v=14">
+  <link rel="stylesheet" href="/css/style.css?v=12">
 </head>
 <body>
 
@@ -744,7 +744,7 @@
               </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;padding:0 16px 10px">
-              <input id="routeStartInput" class="form-control" placeholder="Адрес или координаты (55.75, 37.62)…" style="font-size:13px;flex:1" onkeydown="if(event.key==='Enter') setRouteStart()">
+              <input id="routeStartInput" class="form-control" placeholder="Адрес или координаты (55.75, 37.62)…" style="font-size:13px;flex:1" onkeydown="if(event.key==='Enter')setRouteStart()">
               <button class="btn btn-sm" onclick="setRouteStart()" style="border:1.5px solid var(--border);background:white;color:var(--dark);white-space:nowrap;padding:8px 14px;font-size:13px">🔍 Найти</button>
             </div>
             <div style="padding:0 16px 10px;font-size:12px;color:var(--muted)">
@@ -758,79 +758,6 @@
           <div style="padding:16px;background:#FFF8E1;border-radius:var(--radius);font-size:.85rem;color:#5D4037;border-left:4px solid var(--warning)">
             <strong>Автоэскалация:</strong> Жалобы не обработанные в течение установленного времени (72 часа) автоматически переводятся в статус «Эскалирована» фоновым async-процессом. KPI «Авто-обработано» отражает количество таких случаев.
           </div>
-
-          <div class="admin-table-wrap">
-            <div class="admin-table-header">
-              <div class="admin-table-title">🗂️ Схема базы данных</div>
-              <span style="font-size:12px;color:var(--muted)">5 таблиц · SQLAlchemy ORM · PostgreSQL</span>
-            </div>
-            <div style="padding:16px;overflow-x:auto">
-              <pre class="mermaid" id="erDiagram">
-erDiagram
-    USERS {
-        int id PK
-        string email UK
-        string password_hash
-        string full_name
-        string phone
-        bool is_admin
-        datetime created_at
-    }
-    CATEGORIES {
-        int id PK
-        string name
-        text description
-        string icon
-        int auto_escalation_hours
-    }
-    COMPLAINTS {
-        int id PK
-        string ticket_number UK
-        int user_id FK
-        int category_id FK
-        int assigned_to FK
-        string title
-        text description
-        string address
-        string lat
-        string lng
-        string status
-        string priority
-        datetime created_at
-        datetime updated_at
-        datetime escalated_at
-        datetime resolved_at
-    }
-    COMPLAINT_EVENTS {
-        int id PK
-        int complaint_id FK
-        int created_by FK
-        string event_type
-        string old_status
-        string new_status
-        text comment
-        datetime created_at
-    }
-    NOTIFICATIONS {
-        int id PK
-        int user_id FK
-        int complaint_id FK
-        text message
-        bool is_read
-        string notification_type
-        datetime created_at
-    }
-    USERS ||--o{ COMPLAINTS : "подаёт"
-    USERS ||--o{ COMPLAINTS : "назначен на"
-    CATEGORIES ||--o{ COMPLAINTS : "категория"
-    COMPLAINTS ||--o{ COMPLAINT_EVENTS : "история"
-    COMPLAINTS ||--o{ NOTIFICATIONS : "генерирует"
-    USERS ||--o{ NOTIFICATIONS : "получает"
-    USERS ||--o{ COMPLAINT_EVENTS : "создаёт"
-              </pre>
-            </div>
-          </div>
-
         </div>
 
       </div>
@@ -885,11 +812,6 @@ erDiagram
 <script src="/js/config.js?v=3"></script>
 <script src="/js/api.js?v=12"></script>
 <script src="/js/auth.js?v=3"></script>
-<script src="/js/app.js?v=16"></script>
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-  mermaid.initialize({ startOnLoad: false, theme: 'default', er: { layoutDirection: 'TB' } });
-  window._mermaid = mermaid;
-</script>
+<script src="/js/app.js?v=13"></script>
 </body>
 </html>

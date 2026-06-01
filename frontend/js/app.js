@@ -1045,7 +1045,6 @@ async function loadAdminPanel() {
     renderAdminTable('');
     renderAdminUsers(users);
     setTimeout(initRouteMap, 100);
-    setTimeout(renderDbSchema, 200);
   } catch(e){ showToast('error','Ошибка загрузки администратора'); }
 }
 
@@ -1156,18 +1155,6 @@ function adminExport() {
 }
 
 /* ═══════════════════════════════════════════════════════
-   DB SCHEMA
-═══════════════════════════════════════════════════════ */
-let _schemaRendered = false;
-function renderDbSchema() {
-  if (_schemaRendered || !window._mermaid) return;
-  const el = document.getElementById('erDiagram');
-  if (!el) return;
-  _schemaRendered = true;
-  window._mermaid.run({ nodes: [el] });
-}
-
-/* ═══════════════════════════════════════════════════════
    ROUTE OPTIMIZER
 ═══════════════════════════════════════════════════════ */
 let _routeMap = null;
@@ -1232,17 +1219,14 @@ async function setRouteStart() {
   const val = document.getElementById('routeStartInput').value.trim();
   if (!val || !_startMarker) return;
 
-  // Check if input looks like "lat, lng"
   const coordMatch = val.match(/^(-?\d+(?:\.\d+)?)\s*[,;\s]\s*(-?\d+(?:\.\d+)?)$/);
   if (coordMatch) {
-    const lat = parseFloat(coordMatch[1]);
-    const lng = parseFloat(coordMatch[2]);
+    const lat = parseFloat(coordMatch[1]), lng = parseFloat(coordMatch[2]);
     _startMarker.setLatLng([lat, lng]);
     _routeMap.setView([lat, lng], 13, { animate: true });
     return;
   }
 
-  // Geocode via Nominatim
   const btn = document.querySelector('[onclick="setRouteStart()"]');
   const orig = btn.textContent;
   btn.disabled = true; btn.textContent = '⏳';
@@ -1253,8 +1237,7 @@ async function setRouteStart() {
     );
     const data = await res.json();
     if (!data.length) { showToast('warning', 'Адрес не найден'); return; }
-    const lat = parseFloat(data[0].lat);
-    const lng = parseFloat(data[0].lon);
+    const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
     _startMarker.setLatLng([lat, lng]);
     _routeMap.setView([lat, lng], 14, { animate: true });
   } catch(e) {
