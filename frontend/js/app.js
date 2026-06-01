@@ -1199,10 +1199,13 @@ function renderRouteResult(data, startLat, startLng) {
   `;
 
   if (_routeMap) { _routeMap.remove(); _routeMap = null; }
-  _routeMap = L.map('routeMapCanvas').setView([startLat, startLng], 12);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© <a href="https://openstreetmap.org">OSM</a>'
+  _routeMap = L.map('routeMapCanvas', { zoomControl: false }).setView([startLat, startLng], 12);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
+    subdomains: 'abcd', maxZoom: 19
   }).addTo(_routeMap);
+  L.control.zoom({ position: 'topright' }).addTo(_routeMap);
+  _routeMap.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
 
   const STATUS_COLOR = { new:'#2563EB', in_progress:'#F59E0B', escalated:'#EF4444', resolved:'#10B981' };
 
