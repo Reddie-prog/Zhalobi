@@ -1320,7 +1320,16 @@ function renderRouteResult(data, startLat, startLng) {
    INFRASTRUCTURE GRAPH
 ═══════════════════════════════════════════════════════ */
 let _graphSim = null;
-let _graphNodeSel = null;  // D3 selection for cluster highlight
+let _graphNodeSel = null;
+
+const _GRAPH_STATUS_COLOR = {
+  new: '#2563EB', in_progress: '#F59E0B', escalated: '#EF4444',
+  resolved: '#10B981', closed: '#94A3B8',
+};
+const _GRAPH_STATUS_LABEL = {
+  new: 'Новое', in_progress: 'В работе', escalated: 'Эскалировано',
+  resolved: 'Решено', closed: 'Закрыто',
+};
 
 async function runGraphAnalysis() {
   const btn = document.getElementById('graphAnalyzeBtn');
@@ -1353,144 +1362,236 @@ function _renderGraphViz(data) {
     return;
   }
 
-  const W = wrap.clientWidth || 700, H = 480;
+  const W = wrap.clientWidth || 700, H = 460;
   const svg = d3.select('#graphSvgWrap').append('svg').attr('width', W).attr('height', H);
 
-  // Deep copy: D3 mutates node objects (adds x/y/vx/vy)
+  // Background grid
+  const defs = svg.append('defs');
+  defs.append('pattern').attr('id','gGrid').attr('width',40).attr('height',40)
+    .attr('patternUnits','userSpaceOnUse')
+    .append('path').attr('d','M 40 0 L 0 0 0 40').attr('fill','none')
+    .attr('stroke','#E2E8F0').attr('stroke-width','0.5');
+  svg.append('rect').attr('width',W).attr('height',H).attr('fill','url(#gGrid)');
+
+  // Deep copy — D3 mutates node objects
   const nodes = data.nodes.map(n => ({ ...n }));
   const edges = data.edges.map(e => ({ ...e }));
 
-  const clusterColor = d3.scaleOrdinal()
-    .domain([...new Set(nodes.map(n => n.cluster_id))])
-    .range(['#2563EB','#7C3AED','#059669','#F59E0B','#EF4444','#0E7490','#DB2777','#65A30D','#EA580C','#6366F1']);
+  // ── Geographic projection ─────────────────────────────────────────────
+  const lats = nodes.map(n => parseFloat(n.lat)).filter(v => !isNaN(v));
+  const lngs = nodes.map(n => parseFloat(n.lng)).filter(v => !isNaN(v));
+  const pad = 70;
+  const latR = (Math.max(...lats) - Math.min(...lats)) || 0.005;
+  const lngR = (Math.max(...lngs) - Math.min(...lngs)) || 0.005;
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs);
 
-  const nodeR = d => Math.max(7, Math.min(20, 7 + (d.pagerank || 0) * 26));
+  nodes.forEach(n => {
+    const lat = parseFloat(n.lat), lng = parseFloat(n.lng);
+    n._gx = isNaN(lng) ? W/2 : pad + (lng - minLng) / lngR * (W - 2*pad);
+    n._gy = isNaN(lat) ? H/2 : pad + (maxLat - lat) / latR * (H - 2*pad);
+    n.x = n._gx; n.y = n._gy;
+  });
 
+  // ── Node size: bigger, based on degree ───────────────────────────────
+  const nodeR = d => Math.max(16, Math.min(28, 16 + (d.degree || 0) * 3));
+  const nodeColor = d => _GRAPH_STATUS_COLOR[d.status] || '#64748B';
+
+  // ── Force: anchored to geo coordinates ───────────────────────────────
   _graphSim = d3.forceSimulation(nodes)
-    .force('link',    d3.forceLink(edges).id(d => d.id).distance(e => 65 / Math.sqrt(e.weight || 0.5)))
-    .force('charge',  d3.forceManyBody().strength(-140))
-    .force('center',  d3.forceCenter(W / 2, H / 2))
-    .force('collide', d3.forceCollide(d => nodeR(d) + 6));
+    .force('x',      d3.forceX(d => d._gx).strength(0.55))
+    .force('y',      d3.forceY(d => d._gy).strength(0.55))
+    .force('collide', d3.forceCollide(d => nodeR(d) + 10))
+    .force('link',   d3.forceLink(edges).id(d => d.id).distance(60).strength(0.15));
 
-  // Edges
+  // ── Edges ─────────────────────────────────────────────────────────────
   const linkSel = svg.append('g')
     .selectAll('line').data(edges).join('line')
-    .attr('stroke',       e => e.is_bridge ? '#DC2626' : '#94A3B8')
-    .attr('stroke-width', e => e.is_bridge ? 2.5 : 1.2)
-    .attr('stroke-dasharray', e => e.is_bridge ? null : '5 4')
-    .attr('opacity',      e => e.is_bridge ? 0.9 : 0.45);
+    .attr('stroke',           e => e.is_bridge ? '#EF4444' : '#94A3B8')
+    .attr('stroke-width',     e => e.is_bridge ? 3.5 : 1.8)
+    .attr('stroke-dasharray', e => e.is_bridge ? null : '7 5')
+    .attr('opacity',          e => e.is_bridge ? 0.85 : 0.4);
 
-  // Nodes
+  // Bridge label
+  const bridgeLabelSel = svg.append('g')
+    .selectAll('text').data(edges.filter(e => e.is_bridge)).join('text')
+    .attr('text-anchor','middle').attr('font-size',10).attr('fill','#EF4444')
+    .attr('pointer-events','none').text('мост');
+
+  // ── Node groups ───────────────────────────────────────────────────────
   _graphNodeSel = svg.append('g')
     .selectAll('g').data(nodes).join('g')
-    .style('cursor', 'pointer')
+    .style('cursor','pointer')
     .call(d3.drag()
-      .on('start', (ev, d) => { if (!ev.active) _graphSim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
-      .on('drag',  (ev, d) => { d.fx = ev.x; d.fy = ev.y; })
-      .on('end',   (ev, d) => { if (!ev.active) _graphSim.alphaTarget(0); d.fx = null; d.fy = null; }))
-    .on('click', (_ev, d) => openModal(d.id))
-    .on('mouseover', (ev, d) => {
+      .on('start',(ev,d)=>{ if(!ev.active)_graphSim.alphaTarget(0.3).restart(); d.fx=d.x; d.fy=d.y; })
+      .on('drag', (ev,d)=>{ d.fx=ev.x; d.fy=ev.y; })
+      .on('end',  (ev,d)=>{ if(!ev.active)_graphSim.alphaTarget(0); d.fx=null; d.fy=null; }))
+    .on('click', (_ev,d) => openModal(d.id))
+    .on('mouseover',(ev,d) => {
       const tip = document.getElementById('graphTooltip');
       tip.style.display = '';
       tip.innerHTML =
-        `<strong>#${esc(d.ticket_number)}</strong><br>${esc(d.title)}<br>📍 ${esc(d.address)}<br>` +
-        `PageRank: <strong>${d.pagerank}</strong> · Связей: <strong>${d.degree}</strong>` +
-        (d.is_articulation ? '<br><span style="color:#FCA5A5">⚠ Критический узел</span>' : '');
+        `<div style="font-weight:700;font-size:13px;margin-bottom:3px">#${esc(d.ticket_number)}</div>`+
+        `<div style="margin-bottom:4px;opacity:.9">${esc(d.title)}</div>`+
+        `<div style="opacity:.7;font-size:11px;margin-bottom:6px">📍 ${esc(d.address)}</div>`+
+        `<div style="display:flex;gap:8px;font-size:11px;flex-wrap:wrap">`+
+          `<span style="background:${nodeColor(d)}33;color:${nodeColor(d)};padding:1px 7px;border-radius:20px">${_GRAPH_STATUS_LABEL[d.status]||d.status}</span>`+
+          `<span>Связей: <strong>${d.degree}</strong></span>`+
+          `<span>PR: <strong>${d.pagerank}</strong></span>`+
+        `</div>`+
+        (d.is_articulation?'<div style="color:#FCA5A5;margin-top:5px;font-size:11px">⚠ Критический узел инфраструктуры</div>':'');
     })
-    .on('mousemove', ev => {
+    .on('mousemove',ev => {
       const tip = document.getElementById('graphTooltip');
       const rect = document.getElementById('graphSvgWrap').getBoundingClientRect();
-      let tx = ev.clientX - rect.left + 14, ty = ev.clientY - rect.top - 10;
-      if (tx + 230 > W) tx -= 244;
-      tip.style.left = tx + 'px'; tip.style.top = ty + 'px';
+      let tx = ev.clientX-rect.left+16, ty = ev.clientY-rect.top-12;
+      if(tx+240 > W) tx -= 256;
+      if(ty+160 > H) ty -= 170;
+      tip.style.left = tx+'px'; tip.style.top = ty+'px';
     })
-    .on('mouseout', () => { document.getElementById('graphTooltip').style.display = 'none'; });
+    .on('mouseout', ()=>{ document.getElementById('graphTooltip').style.display='none'; });
 
-  // Circle fill
+  // Articulation pulse ring
+  _graphNodeSel.filter(d=>d.is_articulation).append('circle')
+    .attr('r', d=>nodeR(d)+7).attr('fill','none')
+    .attr('stroke','#EF4444').attr('stroke-width',1.5)
+    .attr('stroke-dasharray','4 3').attr('opacity',0.6);
+
+  // Node shadow
+  _graphNodeSel.append('circle')
+    .attr('r', d=>nodeR(d)+2).attr('fill','rgba(0,0,0,.06)').attr('cy',2);
+
+  // Node fill circle
   _graphNodeSel.append('circle')
     .attr('r', nodeR)
-    .attr('fill',         d => d.is_articulation ? '#FEF2F2' : clusterColor(d.cluster_id) + '28')
-    .attr('stroke',       d => d.is_articulation ? '#EF4444' : clusterColor(d.cluster_id))
-    .attr('stroke-width', d => d.is_articulation ? 2.5 : 1.8);
+    .attr('fill',   d => nodeColor(d)+'18')
+    .attr('stroke', nodeColor)
+    .attr('stroke-width', d => d.is_articulation ? 3 : 2);
 
-  // Short label
+  // Category icon
   _graphNodeSel.append('text')
-    .text(d => d.ticket_number ? d.ticket_number.slice(-4) : d.id)
-    .attr('text-anchor', 'middle').attr('dy', '0.35em')
-    .attr('font-size', 9).attr('fill', '#475569').attr('pointer-events', 'none');
+    .text(d => d.category_icon || '🏠')
+    .attr('text-anchor','middle').attr('dy','-0.1em')
+    .attr('font-size', d => Math.min(nodeR(d)-3, 16))
+    .attr('pointer-events','none');
 
-  // Warning icon for articulation points
-  _graphNodeSel.filter(d => d.is_articulation).append('text')
-    .text('⚠').attr('text-anchor', 'middle')
-    .attr('dy', d => -(nodeR(d) + 6)).attr('font-size', 12).attr('pointer-events', 'none');
+  // Status dot (top-right)
+  _graphNodeSel.append('circle')
+    .attr('r', 5)
+    .attr('cx', d => nodeR(d)-4).attr('cy', d => -(nodeR(d)-4))
+    .attr('fill', nodeColor)
+    .attr('stroke','#fff').attr('stroke-width',1.5);
 
-  _graphSim.on('tick', () => {
+  _graphSim.on('tick', ()=>{
     linkSel
-      .attr('x1', e => _clamp(e.source.x, 0, W)).attr('y1', e => _clamp(e.source.y, 0, H))
-      .attr('x2', e => _clamp(e.target.x, 0, W)).attr('y2', e => _clamp(e.target.y, 0, H));
-    _graphNodeSel.attr('transform', d =>
-      `translate(${_clamp(d.x, nodeR(d), W - nodeR(d))},${_clamp(d.y, nodeR(d), H - nodeR(d))})`);
+      .attr('x1',e=>_clamp(e.source.x,0,W)).attr('y1',e=>_clamp(e.source.y,0,H))
+      .attr('x2',e=>_clamp(e.target.x,0,W)).attr('y2',e=>_clamp(e.target.y,0,H));
+    bridgeLabelSel
+      .attr('x',e=>(_clamp(e.source.x,0,W)+_clamp(e.target.x,0,W))/2)
+      .attr('y',e=>(_clamp(e.source.y,0,H)+_clamp(e.target.y,0,H))/2-6);
+    _graphNodeSel.attr('transform', d=>
+      `translate(${_clamp(d.x,nodeR(d),W-nodeR(d))},${_clamp(d.y,nodeR(d),H-nodeR(d))})`);
   });
 }
 
-function _clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v || 0)); }
+function _clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v||0)); }
 
 function _renderGraphStats(data) {
   const el = document.getElementById('graphStats');
-  el.innerHTML =
-    `<span>🔵 <strong>${data.node_count}</strong> инцидентов</span>` +
-    `<span>🔗 <strong>${data.edge_count}</strong> связей</span>` +
-    `<span>🏘️ <strong>${data.cluster_count}</strong> кластеров</span>` +
-    `<span style="color:#DC2626">🌉 <strong>${data.bridge_count}</strong> мостов</span>` +
-    `<span style="color:#EF4444">⚠️ <strong>${data.articulation_count}</strong> точек сочленения</span>`;
+  const kpis = [
+    { icon:'🔵', val:data.node_count,        label:'Инцидентов',    color:'#2563EB', bg:'#EFF6FF' },
+    { icon:'🔗', val:data.edge_count,         label:'Связей',        color:'#7C3AED', bg:'#F5F3FF' },
+    { icon:'🏘️', val:data.cluster_count,      label:'Кластеров',     color:'#059669', bg:'#ECFDF5' },
+    { icon:'🌉', val:data.bridge_count,       label:'Мостов',        color: data.bridge_count ? '#DC2626':'#94A3B8', bg: data.bridge_count ? '#FEF2F2':'#F8FAFC' },
+    { icon:'⚠️', val:data.articulation_count, label:'Критич. узлов', color: data.articulation_count ? '#EF4444':'#94A3B8', bg: data.articulation_count ? '#FEF2F2':'#F8FAFC' },
+  ];
+  el.innerHTML = kpis.map(k=>
+    `<div class="graph-kpi" style="background:${k.bg};border-color:${k.color}22">
+      <div class="graph-kpi-icon">${k.icon}</div>
+      <div class="graph-kpi-val" style="color:${k.color}">${k.val}</div>
+      <div class="graph-kpi-label">${k.label}</div>
+    </div>`
+  ).join('');
 }
 
 function _renderGraphClusters(data) {
   const el = document.getElementById('graphClusters');
-  if (!data.clusters.length) { el.innerHTML = ''; return; }
+  const nodeById = {};
+  (data.nodes||[]).forEach(n => nodeById[n.id] = n);
 
   const riskColor = s => s >= 0.6 ? '#DC2626' : s >= 0.3 ? '#F59E0B' : '#10B981';
-  const riskLabel = s => s >= 0.6 ? 'Высокий' : s >= 0.3 ? 'Средний' : 'Низкий';
+  const riskLabel = s => s >= 0.6 ? '🔴 Высокий' : s >= 0.3 ? '🟡 Средний' : '🟢 Низкий';
+  const statusEmoji = { new:'🆕', in_progress:'⚙️', escalated:'🚨', resolved:'✅', closed:'🔒' };
 
-  el.innerHTML =
-    `<div style="font-weight:700;font-size:14px;margin-bottom:10px;color:#0F172A">Кластеры риска</div>` +
-    data.clusters.map(c => {
-      const pct = Math.round(c.risk_score * 100);
-      const col = riskColor(c.risk_score);
+  let html = '';
+
+  if (data.clusters.length) {
+    html += `<div style="font-weight:700;font-size:14px;margin-bottom:12px;color:#0F172A">Кластеры риска</div>`;
+    html += data.clusters.map(c => {
+      const pct   = Math.round(c.risk_score * 100);
+      const col   = riskColor(c.risk_score);
+      const members = c.member_ids.map(id => nodeById[id]).filter(Boolean);
+      const chips = members.slice(0,6).map(n =>
+        `<span class="graph-chip" onclick="openModal(${n.id})" title="${esc(n.title)}">
+          ${statusEmoji[n.status]||'📋'} #${n.ticket_number.slice(-6)}
+        </span>`
+      ).join('') + (members.length>6 ? `<span style="font-size:11px;color:var(--muted)">+${members.length-6} ещё</span>` : '');
       return `<div class="graph-cluster-card">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <span style="font-weight:700;color:#0F172A">Кластер #${c.cluster_id + 1}</span>
-            <span style="margin-left:10px;font-size:12px;color:var(--muted)">${esc(c.top_category)} · ${c.size} инцидентов</span>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+              <span style="font-weight:700;color:#0F172A;font-size:14px">Кластер ${c.cluster_id+1}</span>
+              <span style="font-size:11px;background:#EFF6FF;color:#2563EB;padding:2px 9px;border-radius:20px;font-weight:500">${esc(c.top_category)}</span>
+              <span style="font-size:11px;color:var(--muted)">${c.size} инцидент${c.size>4?'ов':c.size>1?'а':''}</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:5px">${chips}</div>
           </div>
-          <div style="display:flex;gap:10px;align-items:center">
-            <span style="font-size:12px;font-weight:600;color:${col}">${riskLabel(c.risk_score)} риск ${pct}%</span>
-            <button onclick="highlightCluster(${c.cluster_id})" style="font-size:11px;padding:3px 10px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:6px;cursor:pointer;color:#2563EB">Выделить</button>
+          <div style="text-align:right;flex-shrink:0;min-width:90px">
+            <div style="font-weight:800;font-size:22px;color:${col};line-height:1">${pct}%</div>
+            <div style="font-size:11px;color:${col};margin-bottom:6px">${riskLabel(c.risk_score)}</div>
+            <button onclick="highlightCluster(${c.cluster_id})" class="graph-highlight-btn">Выделить →</button>
           </div>
         </div>
-        <div style="margin-top:6px;background:#E2E8F0;border-radius:4px;height:5px">
-          <div style="width:${pct}%;background:${col};height:5px;border-radius:4px;transition:width .4s"></div>
+        <div style="background:#E2E8F0;border-radius:4px;height:4px;margin-top:8px">
+          <div style="width:${pct}%;background:${col};height:4px;border-radius:4px;transition:width .5s ease"></div>
         </div>
       </div>`;
-    }).join('') +
-    (data.articulation_ids && data.articulation_ids.length
-      ? `<div style="margin-top:10px;padding:10px 14px;background:#FEF2F2;border-radius:10px;border-left:4px solid #EF4444;font-size:13px">
-          <strong style="color:#DC2626">⚠ Точки сочленения (${data.articulation_ids.length})</strong> — узлы, чья поломка разорвёт граф.
-          Красные узлы на графе: ${data.articulation_ids.map(id => { const n = (data.nodes||[]).find(x=>x.id===id); return n?`#${n.ticket_number}`:`#${id}`; }).join(', ')}.
-        </div>`
-      : '');
+    }).join('');
+  }
+
+  if (data.articulation_ids && data.articulation_ids.length) {
+    html += `<div class="graph-art-alert">
+      <strong>⚠ Критические узлы (${data.articulation_ids.length})</strong> — точки сочленения, чьё выбытие разорвёт связность инфраструктуры:
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px">
+        ${data.articulation_ids.map(id => {
+          const n = nodeById[id];
+          return n
+            ? `<span class="graph-chip graph-chip-danger" onclick="openModal(${id})" title="${esc(n.title)}">⚠ #${n.ticket_number.slice(-6)}</span>`
+            : `<span class="graph-chip graph-chip-danger">#${id}</span>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+
+  if (!data.clusters.length && !data.articulation_ids?.length) {
+    html = `<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">
+      Кластеры не обнаружены — инциденты не связаны между собой при текущем радиусе.
+      <br>Попробуйте увеличить радиус связи.
+    </div>`;
+  }
+
+  el.innerHTML = html;
 }
 
 function highlightCluster(clusterId) {
   if (!_graphNodeSel) return;
-  _graphNodeSel.selectAll('circle')
-    .attr('opacity', d => d.cluster_id === clusterId ? 1 : 0.12)
-    .attr('stroke-width', d => d.cluster_id === clusterId ? 3 : 1);
-  setTimeout(() => {
-    _graphNodeSel.selectAll('circle')
-      .attr('opacity', 1)
-      .attr('stroke-width', d => d.is_articulation ? 2.5 : 1.8);
-  }, 2200);
+  _graphNodeSel.selectAll('circle:nth-child(3)')
+    .attr('opacity', d => d.cluster_id === clusterId ? 1 : 0.1);
+  _graphNodeSel.selectAll('text')
+    .attr('opacity', d => d.cluster_id === clusterId ? 1 : 0.1);
+  setTimeout(()=>{
+    _graphNodeSel.selectAll('circle:nth-child(3), text').attr('opacity', 1);
+  }, 2000);
 }
 
 /* ═══════════════════════════════════════════════════════
