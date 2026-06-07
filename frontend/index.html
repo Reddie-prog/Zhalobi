@@ -795,12 +795,12 @@
                 </div>
                 <div style="margin:0 16px 12px;padding:8px 14px;background:#F1F5F9;border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;color:#475569">
                   <span style="font-weight:600;color:#0F172A">Цвет узла:</span>
-                  <span><span class="graph-legend-dot" style="background:#2563EB"></span>Новое</span>
-                  <span><span class="graph-legend-dot" style="background:#F59E0B"></span>В работе</span>
-                  <span><span class="graph-legend-dot" style="background:#EF4444"></span>Эскалировано</span>
-                  <span><span class="graph-legend-dot" style="background:#10B981"></span>Решено</span>
-                  <span style="margin-left:6px"><span class="graph-legend-line" style="background:#EF4444"></span>Мост</span>
-                  <span><span class="graph-legend-dot" style="background:none;border:2px dashed #EF4444"></span>Критич. узел</span>
+                  <span class="graph-tip" data-tip="Жалоба зарегистрирована, ещё не назначена оператору"><span class="graph-legend-dot" style="background:#2563EB"></span>Новое</span>
+                  <span class="graph-tip" data-tip="Жалоба взята в обработку — оператор работает над устранением"><span class="graph-legend-dot" style="background:#F59E0B"></span>В работе</span>
+                  <span class="graph-tip" data-tip="Нарушен срок обработки или требуется вмешательство руководства — приоритет повышен автоматически"><span class="graph-legend-dot" style="background:#EF4444"></span>Эскалировано</span>
+                  <span class="graph-tip" data-tip="Проблема устранена и подтверждена — жалоба закрыта"><span class="graph-legend-dot" style="background:#10B981"></span>Решено</span>
+                  <span class="graph-tip" style="margin-left:6px" data-tip="Единственная связь между двумя группами узлов. Если этот объект выходит из строя — часть сети отключается от остальной инфраструктуры"><span class="graph-legend-line" style="background:#EF4444"></span>Мост</span>
+                  <span class="graph-tip" data-tip="Точка сочленения: удаление этого узла разбивает граф на несвязные части. Требует приоритетного внимания"><span class="graph-legend-dot" style="background:none;border:2px dashed #EF4444"></span>Критич. узел</span>
                   <span style="margin-left:auto;color:var(--muted);font-size:11px">Иконка = категория · Тянуть · Клик → карточка</span>
                 </div>
               </div>
