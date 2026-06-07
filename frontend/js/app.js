@@ -1493,17 +1493,19 @@ function _renderGraphViz(data) {
     .on('mouseover', (ev,d) => {
       const tip = document.getElementById('graphTooltip');
       const sc = _STATUS_COLOR[d.status] || '#64748B';
+      const icon = d.category_icon || '🏠';
       tip.style.display = '';
       tip.innerHTML =
-        `<div style="font-weight:700;margin-bottom:3px">#${esc(d.ticket_number)}</div>` +
-        `<div style="margin-bottom:5px;opacity:.9;font-size:12px">${esc(d.title)}</div>` +
-        `<div style="opacity:.7;font-size:11px;margin-bottom:7px">📍 ${esc(d.address)}</div>` +
-        `<div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px">` +
-          `<span style="background:${sc}22;color:${sc};padding:2px 8px;border-radius:20px;font-weight:600">${_STATUS_LABEL[d.status]||d.status}</span>` +
-          `<span style="background:#F1F5F9;padding:2px 8px;border-radius:20px">Связей: ${d.degree}</span>` +
-          `<span style="background:#F1F5F9;padding:2px 8px;border-radius:20px">PR: ${d.pagerank}</span>` +
+        `<div style="font-weight:700;font-size:13px;margin-bottom:5px">${icon} #${esc(d.ticket_number)}</div>` +
+        `<div style="margin-bottom:5px;line-height:1.4">${esc(d.title)}</div>` +
+        `<div style="opacity:.7;font-size:11px;margin-bottom:8px">📍 ${esc(d.address)}</div>` +
+        `<div style="border-top:1px solid rgba(255,255,255,.15);padding-top:7px;font-size:11px;display:flex;flex-direction:column;gap:4px">` +
+          `<div>Статус: <span style="color:${sc};font-weight:600">${_STATUS_LABEL[d.status]||d.status}</span></div>` +
+          `<div>Категория: <span style="opacity:.85">${esc(d.category||'—')}</span></div>` +
+          `<div>Связей в графе: <strong>${d.degree}</strong>${d.degree===0?' (изолирован)':''}</div>` +
+          `<div>Важность (PageRank): <strong>${d.pagerank}</strong></div>` +
         `</div>` +
-        (d.is_articulation ? '<div style="color:#FCA5A5;margin-top:6px;font-size:11px">⚠ Критический узел</div>' : '');
+        (d.is_articulation ? `<div style="margin-top:7px;padding:5px 8px;background:#EF444430;border-radius:6px;font-size:11px;color:#FCA5A5">⚠ Критический узел — удаление разрывает сеть</div>` : '');
     })
     .on('mousemove', ev => {
       const tip = document.getElementById('graphTooltip');
