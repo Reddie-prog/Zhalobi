@@ -782,18 +782,25 @@
               <div>Нажмите «Анализировать» для построения графа связей между инцидентами.<br>Система использует BFS, Дейкстру, алгоритм Тарьяна, PageRank и кластеризацию.</div>
             </div>
             <div id="graphCanvasWrap" style="display:none">
-              <div style="position:relative;margin:0 16px 8px">
-                <div id="graphSvgWrap" style="width:100%;height:480px;background:linear-gradient(135deg,#F8FAFC,#EFF6FF);border-radius:12px;border:1px solid var(--border);overflow:hidden"></div>
-                <div id="graphLegend" style="position:absolute;top:12px;left:12px;background:rgba(255,255,255,.93);border-radius:8px;padding:10px 14px;font-size:12px;line-height:1.9;box-shadow:0 2px 8px rgba(0,0,0,.08)">
-                  <div style="font-weight:700;color:#0F172A;margin-bottom:2px">Легенда</div>
-                  <div><span class="graph-legend-dot" style="background:#EF4444"></span>Точка сочленения</div>
-                  <div><span class="graph-legend-line" style="background:#DC2626"></span>Мост (критич. связь)</div>
-                  <div><span class="graph-legend-dot" style="background:#2563EB"></span>Инцидент (размер = PageRank)</div>
-                  <div style="color:var(--muted);font-size:11px;margin-top:2px">Цвет ≡ кластер · Клик → карточка</div>
-                </div>
-                <div id="graphTooltip" style="display:none;position:absolute;background:rgba(15,23,42,.92);color:#fff;padding:9px 13px;border-radius:9px;font-size:12px;pointer-events:none;max-width:220px;line-height:1.6;z-index:10"></div>
+              <!-- Canvas -->
+              <div style="position:relative;margin:0 16px 0">
+                <div id="graphSvgWrap" style="width:100%;height:460px;background:#F8FAFC;border-radius:12px 12px 0 0;border:1px solid var(--border);border-bottom:none;overflow:hidden"></div>
+                <div id="graphTooltip" style="display:none;position:absolute;background:rgba(15,23,42,.93);color:#fff;padding:10px 14px;border-radius:10px;font-size:12px;pointer-events:none;max-width:250px;line-height:1.6;z-index:10;box-shadow:0 4px 16px rgba(0,0,0,.2)"></div>
               </div>
-              <div id="graphStats" style="padding:10px 16px;background:#EFF6FF;border-radius:10px;margin:0 16px 8px;font-size:13px;display:flex;gap:20px;flex-wrap:wrap;align-items:center"></div>
+              <!-- Legend strip -->
+              <div style="margin:0 16px 12px;padding:8px 14px;background:#F1F5F9;border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12px;color:#475569">
+                <span style="font-weight:600;color:#0F172A">Цвет узла:</span>
+                <span><span class="graph-legend-dot" style="background:#2563EB"></span>Новое</span>
+                <span><span class="graph-legend-dot" style="background:#F59E0B"></span>В работе</span>
+                <span><span class="graph-legend-dot" style="background:#EF4444"></span>Эскалировано</span>
+                <span><span class="graph-legend-dot" style="background:#10B981"></span>Решено</span>
+                <span style="margin-left:6px"><span class="graph-legend-line" style="background:#EF4444"></span>Мост</span>
+                <span><span class="graph-legend-dot" style="background:none;border:2px dashed #EF4444"></span>Критич. узел</span>
+                <span style="margin-left:auto;color:var(--muted);font-size:11px">Иконка = категория · Тянуть · Клик → карточка</span>
+              </div>
+              <!-- KPI row -->
+              <div id="graphStats" style="display:flex;gap:10px;flex-wrap:wrap;padding:0 16px 12px"></div>
+              <!-- Clusters -->
               <div id="graphClusters" style="padding:0 16px 16px"></div>
             </div>
           </div>
