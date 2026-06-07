@@ -585,6 +585,11 @@ table.admin-table{width:100%;border-collapse:collapse}
 .graph-highlight-btn{font-size:11px;padding:4px 10px;background:#F8FAFC;border:1px solid var(--border);border-radius:7px;cursor:pointer;color:var(--primary);display:block;width:100%;text-align:center}
 .graph-highlight-btn:hover{background:#EFF6FF}
 .graph-art-alert{margin-top:10px;padding:13px 16px;background:#FEF2F2;border-radius:10px;border-left:4px solid #EF4444;font-size:13px;color:#7F1D1D}
+.graph-view-btn{padding:6px 16px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:#475569;font-size:13px;cursor:pointer;font-weight:500;transition:all .15s}
+.graph-view-btn:hover{border-color:#CBD5E1;background:#F8FAFC}
+.graph-view-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.graph-map-node{border-radius:50%;border-style:solid;display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.graph-map-bridge-lbl{background:transparent!important;border:none!important;color:#EF4444;font-size:11px;font-weight:600;box-shadow:none!important}
 
 /* ── RESPONSIVE ──────────────────────────── */
 @media(max-width:1024px){

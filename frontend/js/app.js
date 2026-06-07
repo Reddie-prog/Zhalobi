@@ -1320,7 +1320,13 @@ function renderRouteResult(data, startLat, startLng) {
    INFRASTRUCTURE GRAPH
 ═══════════════════════════════════════════════════════ */
 let _graphSim = null;
-let _graphNodeSel = null;  // D3 selection for cluster highlight
+let _graphNodeSel = null;
+let _graphLastData = null;
+let _graphLeaflet = null;
+let _graphLeafletLayers = [];
+
+const _STATUS_COLOR = { new:'#2563EB', in_progress:'#F59E0B', escalated:'#EF4444', resolved:'#10B981', closed:'#94A3B8' };
+const _STATUS_LABEL = { new:'Новое', in_progress:'В работе', escalated:'Эскалировано', resolved:'Решено', closed:'Закрыто' };
 
 async function runGraphAnalysis() {
   const btn = document.getElementById('graphAnalyzeBtn');
@@ -1330,8 +1336,10 @@ async function runGraphAnalysis() {
     const proximity = document.getElementById('graphProximity').value;
     const statuses  = document.getElementById('graphStatuses').value;
     const data = await api.graphAnalysis(proximity, statuses);
+    _graphLastData = data;
     document.getElementById('graphPlaceholder').style.display = 'none';
     document.getElementById('graphCanvasWrap').style.display = '';
+    switchGraphView('d3');
     _renderGraphViz(data);
     _renderGraphStats(data);
     _renderGraphClusters(data);
@@ -1343,8 +1351,90 @@ async function runGraphAnalysis() {
   }
 }
 
-const _STATUS_COLOR = { new:'#2563EB', in_progress:'#F59E0B', escalated:'#EF4444', resolved:'#10B981', closed:'#94A3B8' };
-const _STATUS_LABEL = { new:'Новое', in_progress:'В работе', escalated:'Эскалировано', resolved:'Решено', closed:'Закрыто' };
+function switchGraphView(view) {
+  document.getElementById('graphD3Wrap').style.display  = view === 'd3'  ? '' : 'none';
+  document.getElementById('graphMapWrap').style.display = view === 'map' ? '' : 'none';
+  document.getElementById('graphViewD3Btn') .classList.toggle('active', view === 'd3');
+  document.getElementById('graphViewMapBtn').classList.toggle('active', view === 'map');
+  if (view === 'map' && _graphLastData) {
+    setTimeout(() => _renderGraphOnMap(_graphLastData), 80);
+  }
+}
+
+function _renderGraphOnMap(data) {
+  if (!_graphLeaflet) {
+    _graphLeaflet = L.map('graphMapCanvas', { zoomControl: false })
+      .setView([55.7558, 37.6173], 11);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '© <a href="https://carto.com/">CARTO</a>',
+    }).addTo(_graphLeaflet);
+    L.control.zoom({ position: 'topright' }).addTo(_graphLeaflet);
+    _graphLeaflet.attributionControl.setPrefix('<a href="https://leafletjs.com">Leaflet</a>');
+  }
+
+  _graphLeafletLayers.forEach(l => _graphLeaflet.removeLayer(l));
+  _graphLeafletLayers = [];
+  _graphLeaflet.invalidateSize();
+
+  const nodeById = Object.fromEntries(data.nodes.map(n => [n.id, n]));
+
+  // Edges (drawn first, under markers)
+  data.edges.forEach(e => {
+    const a = nodeById[e.source], b = nodeById[e.target];
+    if (!a?.lat || !b?.lat) return;
+    const line = L.polyline(
+      [[+a.lat, +a.lng], [+b.lat, +b.lng]],
+      { color: e.is_bridge ? '#EF4444' : '#94A3B8', weight: e.is_bridge ? 3.5 : 1.5,
+        dashArray: e.is_bridge ? null : '7 5', opacity: e.is_bridge ? 0.9 : 0.5 }
+    ).addTo(_graphLeaflet);
+    if (e.is_bridge) {
+      line.bindTooltip('мост', { permanent: true, className: 'graph-map-bridge-lbl', direction: 'center' });
+    }
+    _graphLeafletLayers.push(line);
+  });
+
+  // Nodes
+  const bounds = [];
+  data.nodes.forEach(n => {
+    if (!n.lat || !n.lng) return;
+    const lat = +n.lat, lng = +n.lng;
+    bounds.push([lat, lng]);
+    const sc = _STATUS_COLOR[n.status] || '#64748B';
+    const r  = Math.max(16, Math.min(24, 16 + (n.degree || 0) * 2));
+    const artRing = n.is_articulation
+      ? `<div style="position:absolute;inset:-6px;border-radius:50%;border:2px dashed #EF4444;opacity:.7"></div>` : '';
+
+    const icon = L.divIcon({
+      html: `<div class="graph-map-node" style="width:${r*2}px;height:${r*2}px;border-color:${n.is_articulation?'#EF4444':sc};background:${sc}20;border-width:${n.is_articulation?3:2}px;">
+               <span style="font-size:${Math.min(r-3,17)}px;line-height:1">${n.category_icon||'🏠'}</span>
+               ${artRing}
+             </div>`,
+      className: '',
+      iconSize: [r*2, r*2],
+      iconAnchor: [r, r],
+    });
+
+    const marker = L.marker([lat, lng], { icon }).addTo(_graphLeaflet);
+    marker.bindPopup(
+      `<div style="min-width:200px">` +
+      `<div style="font-weight:700;margin-bottom:4px">#${n.ticket_number}</div>` +
+      `<div style="margin-bottom:4px">${n.title}</div>` +
+      `<div style="font-size:12px;color:#64748B;margin-bottom:6px">📍 ${n.address}</div>` +
+      `<div style="display:flex;gap:6px;flex-wrap:wrap;font-size:11px">` +
+        `<span style="background:${sc}20;color:${sc};padding:2px 8px;border-radius:20px;font-weight:600">${_STATUS_LABEL[n.status]||n.status}</span>` +
+        `<span style="background:#F1F5F9;padding:2px 8px;border-radius:20px">Связей: ${n.degree}</span>` +
+        (n.is_articulation ? `<span style="background:#FEF2F2;color:#EF4444;padding:2px 8px;border-radius:20px">⚠ Критич.</span>` : '') +
+      `</div></div>`,
+      { maxWidth: 270 }
+    );
+    marker.on('click', () => openModal(n.id));
+    _graphLeafletLayers.push(marker);
+  });
+
+  if (bounds.length) {
+    _graphLeaflet.fitBounds(L.latLngBounds(bounds), { padding: [50, 50], maxZoom: 15 });
+  }
+}
 
 function _renderGraphViz(data) {
   const wrap = document.getElementById('graphSvgWrap');
