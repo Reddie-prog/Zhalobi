@@ -1559,15 +1559,14 @@ function _clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v||0)); }
 
 function _renderGraphStats(data) {
   const kpis = [
-    { icon:'🔵', val:data.node_count,        label:'Инцидентов',    color:'#2563EB', bg:'#EFF6FF' },
-    { icon:'🔗', val:data.edge_count,         label:'Связей',        color:'#7C3AED', bg:'#F5F3FF' },
-    { icon:'🏘️', val:data.cluster_count,      label:'Кластеров',     color:'#059669', bg:'#ECFDF5' },
-    { icon:'🌉', val:data.bridge_count,       label:'Мостов',        color:data.bridge_count?'#DC2626':'#94A3B8',       bg:data.bridge_count?'#FEF2F2':'#F8FAFC' },
-    { icon:'⚠️', val:data.articulation_count, label:'Критич. узлов', color:data.articulation_count?'#EF4444':'#94A3B8', bg:data.articulation_count?'#FEF2F2':'#F8FAFC' },
+    { val:data.node_count,        label:'Инцидентов',    color:'#2563EB', bg:'#EFF6FF' },
+    { val:data.edge_count,         label:'Связей',        color:'#7C3AED', bg:'#F5F3FF' },
+    { val:data.cluster_count,      label:'Кластеров',     color:'#059669', bg:'#ECFDF5' },
+    { val:data.bridge_count,       label:'Мостов',        color:data.bridge_count?'#DC2626':'#94A3B8',       bg:data.bridge_count?'#FEF2F2':'#F8FAFC' },
+    { val:data.articulation_count, label:'Критич. узлов', color:data.articulation_count?'#EF4444':'#94A3B8', bg:data.articulation_count?'#FEF2F2':'#F8FAFC' },
   ];
   document.getElementById('graphStats').innerHTML = kpis.map(k =>
     `<div class="graph-kpi" style="background:${k.bg}">
-      <div class="graph-kpi-icon">${k.icon}</div>
       <div class="graph-kpi-val" style="color:${k.color}">${k.val}</div>
       <div class="graph-kpi-label">${k.label}</div>
     </div>`
