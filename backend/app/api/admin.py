@@ -87,6 +87,74 @@ async def list_users(
     return [UserResponse.model_validate(u) for u in result.scalars().all()]
 
 
+@router.get("/graph/analysis")
+async def graph_analysis(
+    proximity_km: float = Query(0.5),
+    statuses: str = "new,in_progress,escalated",
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    from ..services.infrastructure_graph import InfrastructureGraph
+    facade = ComplaintFacade(db)
+    all_complaints = await facade.get_all_complaints(skip=0, limit=1000)
+    status_list = [s.strip() for s in statuses.split(",")]
+
+    points = [
+        {
+            "id": c.id,
+            "ticket_number": c.ticket_number,
+            "title": c.title,
+            "address": c.address,
+            "status": c.status,
+            "lat": c.lat,
+            "lng": c.lng,
+            "category": c.category.name if c.category else "—",
+            "category_id": c.category_id,
+            "created_at": c.created_at.isoformat() if c.created_at else None,
+        }
+        for c in all_complaints
+        if c.status in status_list and c.lat and c.lng
+    ]
+
+    graph = InfrastructureGraph(proximity_km=proximity_km)
+    graph.build(points)
+    return graph.full_analysis()
+
+
+@router.get("/graph/predict/{complaint_id}")
+async def graph_predict(
+    complaint_id: int,
+    proximity_km: float = Query(0.5),
+    max_hops: int = Query(3),
+    admin: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    from ..services.infrastructure_graph import InfrastructureGraph
+    facade = ComplaintFacade(db)
+    all_complaints = await facade.get_all_complaints(skip=0, limit=1000)
+
+    points = [
+        {
+            "id": c.id,
+            "ticket_number": c.ticket_number,
+            "title": c.title,
+            "address": c.address,
+            "status": c.status,
+            "lat": c.lat,
+            "lng": c.lng,
+            "category": c.category.name if c.category else "—",
+            "category_id": c.category_id,
+        }
+        for c in all_complaints
+        if c.lat and c.lng
+    ]
+
+    graph = InfrastructureGraph(proximity_km=proximity_km)
+    graph.build(points)
+    predictions = graph.predict_risk_zone(complaint_id, max_hops=max_hops)
+    return {"complaint_id": complaint_id, "predictions": predictions, "count": len(predictions)}
+
+
 @router.get("/route")
 async def get_route(
     lat: float,

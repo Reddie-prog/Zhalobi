@@ -755,6 +755,49 @@
             <div id="routeListEl" style="display:none;padding:0 16px 16px"></div>
           </div>
 
+          <!-- INFRASTRUCTURE GRAPH -->
+          <div class="admin-table-wrap" id="adminGraphSection">
+            <div class="admin-table-header">
+              <div class="admin-table-title">🔬 Граф инфраструктуры</div>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <label style="font-size:12px;color:var(--muted);white-space:nowrap">Радиус связи:</label>
+                <select id="graphProximity" class="form-control" style="width:90px;padding:6px 8px;font-size:13px">
+                  <option value="0.3">300 м</option>
+                  <option value="0.5" selected>500 м</option>
+                  <option value="1.0">1 км</option>
+                  <option value="2.0">2 км</option>
+                </select>
+                <select id="graphStatuses" class="form-control" style="width:175px;padding:6px 8px;font-size:13px">
+                  <option value="new,in_progress,escalated">Активные</option>
+                  <option value="new">Только новые</option>
+                  <option value="escalated">Эскалированные</option>
+                  <option value="new,in_progress,escalated,resolved,closed">Все статусы</option>
+                </select>
+                <button class="btn btn-primary btn-sm" onclick="runGraphAnalysis()" id="graphAnalyzeBtn" style="border:none;white-space:nowrap">🔬 Анализировать</button>
+              </div>
+            </div>
+            <div id="graphPlaceholder" style="padding:40px 16px;text-align:center;color:var(--muted);font-size:13px">
+              <div style="font-size:40px;margin-bottom:12px">🏗️</div>
+              <div style="font-weight:700;color:#0F172A;margin-bottom:6px;font-size:15px">Граф коммунальной инфраструктуры</div>
+              <div>Нажмите «Анализировать» для построения графа связей между инцидентами.<br>Система использует BFS, Дейкстру, алгоритм Тарьяна, PageRank и кластеризацию.</div>
+            </div>
+            <div id="graphCanvasWrap" style="display:none">
+              <div style="position:relative;margin:0 16px 8px">
+                <div id="graphSvgWrap" style="width:100%;height:480px;background:linear-gradient(135deg,#F8FAFC,#EFF6FF);border-radius:12px;border:1px solid var(--border);overflow:hidden"></div>
+                <div id="graphLegend" style="position:absolute;top:12px;left:12px;background:rgba(255,255,255,.93);border-radius:8px;padding:10px 14px;font-size:12px;line-height:1.9;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+                  <div style="font-weight:700;color:#0F172A;margin-bottom:2px">Легенда</div>
+                  <div><span class="graph-legend-dot" style="background:#EF4444"></span>Точка сочленения</div>
+                  <div><span class="graph-legend-line" style="background:#DC2626"></span>Мост (критич. связь)</div>
+                  <div><span class="graph-legend-dot" style="background:#2563EB"></span>Инцидент (размер = PageRank)</div>
+                  <div style="color:var(--muted);font-size:11px;margin-top:2px">Цвет ≡ кластер · Клик → карточка</div>
+                </div>
+                <div id="graphTooltip" style="display:none;position:absolute;background:rgba(15,23,42,.92);color:#fff;padding:9px 13px;border-radius:9px;font-size:12px;pointer-events:none;max-width:220px;line-height:1.6;z-index:10"></div>
+              </div>
+              <div id="graphStats" style="padding:10px 16px;background:#EFF6FF;border-radius:10px;margin:0 16px 8px;font-size:13px;display:flex;gap:20px;flex-wrap:wrap;align-items:center"></div>
+              <div id="graphClusters" style="padding:0 16px 16px"></div>
+            </div>
+          </div>
+
           <div style="padding:16px;background:#FFF8E1;border-radius:var(--radius);font-size:.85rem;color:#5D4037;border-left:4px solid var(--warning)">
             <strong>Автоэскалация:</strong> Жалобы не обработанные в течение установленного времени (72 часа) автоматически переводятся в статус «Эскалирована» фоновым async-процессом. KPI «Авто-обработано» отражает количество таких случаев.
           </div>
@@ -809,9 +852,10 @@
   </div>
 </div>
 
+<script src="https://d3js.org/d3.v7.min.js"></script>
 <script src="/js/config.js?v=3"></script>
-<script src="/js/api.js?v=12"></script>
+<script src="/js/api.js?v=13"></script>
 <script src="/js/auth.js?v=3"></script>
-<script src="/js/app.js?v=13"></script>
+<script src="/js/app.js?v=14"></script>
 </body>
 </html>

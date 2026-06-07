@@ -51,6 +51,10 @@ const api = {
     if (categoryId) url += `&category_id=${categoryId}`;
     return request('GET', url);
   },
+  graphAnalysis:   (proximityKm='0.5', statuses='new,in_progress,escalated') =>
+    request('GET', `/admin/graph/analysis?proximity_km=${proximityKm}&statuses=${encodeURIComponent(statuses)}`),
+  graphPredict:    (complaintId, proximityKm='0.5', maxHops=3) =>
+    request('GET', `/admin/graph/predict/${complaintId}?proximity_km=${proximityKm}&max_hops=${maxHops}`),
 
   // Stats & notifications
   stats:           () => request('GET', '/stats'),
