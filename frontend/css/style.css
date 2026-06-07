@@ -569,22 +569,10 @@ table.admin-table{width:100%;border-collapse:collapse}
 .empty-state .ei{font-size:3.5rem;margin-bottom:16px}
 
 /* ── INFRASTRUCTURE GRAPH ─────────────────── */
-.graph-legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
-.graph-legend-line{display:inline-block;width:20px;height:3px;margin-right:5px;vertical-align:middle;border-radius:2px}
-.graph-kpi{border:1px solid;border-radius:12px;padding:10px 16px;display:flex;flex-direction:column;align-items:center;min-width:100px;flex:1;transition:transform .15s}
-.graph-kpi:hover{transform:translateY(-1px)}
-.graph-kpi-icon{font-size:18px;margin-bottom:2px}
-.graph-kpi-val{font-size:24px;font-weight:800;line-height:1.1}
-.graph-kpi-label{font-size:11px;color:var(--muted);margin-top:2px;text-align:center;white-space:nowrap}
-.graph-cluster-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:8px;transition:box-shadow .15s}
-.graph-cluster-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);border-color:#CBD5E1}
-.graph-chip{display:inline-block;background:#EFF6FF;color:#2563EB;border:1px solid #BFDBFE;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;transition:background .1s}
-.graph-chip:hover{background:#DBEAFE}
-.graph-chip-danger{background:#FEF2F2;color:#DC2626;border-color:#FECACA}
-.graph-chip-danger:hover{background:#FEE2E2}
-.graph-highlight-btn{margin-top:4px;font-size:11px;padding:4px 10px;background:#F8FAFC;border:1px solid var(--border);border-radius:7px;cursor:pointer;color:var(--primary);display:block;width:100%;text-align:center;transition:background .1s}
-.graph-highlight-btn:hover{background:#EFF6FF;border-color:#BFDBFE}
-.graph-art-alert{margin-top:10px;padding:14px 16px;background:#FEF2F2;border-radius:12px;border-left:4px solid #EF4444;font-size:13px;color:#7F1D1D}
+.graph-legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.graph-legend-line{display:inline-block;width:20px;height:3px;margin-right:6px;vertical-align:middle}
+.graph-cluster-card{background:#F8FAFC;border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:8px}
+.graph-cluster-card:hover{border-color:#CBD5E1;background:#F1F5F9}
 
 /* ── RESPONSIVE ──────────────────────────── */
 @media(max-width:1024px){

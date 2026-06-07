@@ -109,7 +109,6 @@ async def graph_analysis(
             "lat": c.lat,
             "lng": c.lng,
             "category": c.category.name if c.category else "—",
-            "category_icon": c.category.icon if c.category else "🏠",
             "category_id": c.category_id,
             "created_at": c.created_at.isoformat() if c.created_at else None,
         }
@@ -144,7 +143,6 @@ async def graph_predict(
             "lat": c.lat,
             "lng": c.lng,
             "category": c.category.name if c.category else "—",
-            "category_icon": c.category.icon if c.category else "🏠",
             "category_id": c.category_id,
         }
         for c in all_complaints
